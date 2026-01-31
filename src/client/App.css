@@ -23,7 +23,9 @@
 
 .cursor {
   position: absolute;
-  transform: translate(-50%, -50%) scale(calc(1 + var(--velocity, 0) * 0.4));
+  /* Hotspot offset: 32px icon / 8 (CURSOR_HOTSPOT_RATIO) = 4px from top-left */
+  transform-origin: 4px 4px;
+  transform: translate(-4px, -4px) scale(calc(1 + var(--velocity, 0) * 0.4));
   pointer-events: none;
   transition: left 0.05s linear, top 0.05s linear, transform 0.2s ease-out;
   display: flex;
