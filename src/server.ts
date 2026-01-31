@@ -154,6 +154,9 @@ export default class GameServer implements Party.Server {
 
     // Handle cursor updates (broadcast to others)
     if (isValidCursorMessage(payload)) {
+      // Don't broadcast cursors during hidden cursor questions
+      if (this.isCursorHidden()) return;
+      
       const u = this.users.get(sender.id);
       if (!u) return;
       this.room.broadcast(
@@ -407,6 +410,12 @@ export default class GameServer implements Party.Server {
     if (this.phase === GamePhase.ANSWERING && this.checkAllAnsweredCurrentQuestion()) {
       this.advanceToNextQuestion();
     }
+  }
+
+  private isCursorHidden(): boolean {
+    if (this.phase !== GamePhase.ANSWERING) return false;
+    const currentQuestion = this.questions[this.currentQuestionIndex];
+    return currentQuestion?.hideCursors === true;
   }
 
   private checkAllAnsweredCurrentQuestion(): boolean {

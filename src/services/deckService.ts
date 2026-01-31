@@ -7,10 +7,15 @@ export type DeckInfo = { name: string; isAI: boolean };
 
 // Adapter: convert Card → Question
 function cardToQuestion(card: Card): Question {
+  const baseQuestion = {
+    id: card.card_name,
+    text: card.question,
+    hideCursors: card.hideCursors,
+  };
+
   if (card.type === "buttons") {
     return {
-      id: card.card_name,
-      text: card.question,
+      ...baseQuestion,
       type: QuestionType.MULTIPLE_CHOICE,
       answers: card.answers.map((text, i) => ({ id: `a${i + 1}`, text })),
     };
@@ -19,8 +24,7 @@ function cardToQuestion(card: Card): Question {
     const answerCount = card.answers.length;
     if (answerCount === 2) {
       return {
-        id: card.card_name,
-        text: card.question,
+        ...baseQuestion,
         type: QuestionType.SLIDER,
         config: {
           positions: 6,
@@ -30,8 +34,7 @@ function cardToQuestion(card: Card): Question {
       };
     } else if (answerCount === 5) {
       return {
-        id: card.card_name,
-        text: card.question,
+        ...baseQuestion,
         type: QuestionType.SLIDER,
         config: {
           positions: 5,

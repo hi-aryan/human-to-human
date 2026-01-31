@@ -5,6 +5,7 @@ import { RevealView } from "@/components/game/RevealView";
 import { CreateLobbyView } from "@/components/game/CreateLobbyView";
 import { WaitingLobbyView } from "@/components/game/WaitingLobbyView";
 import { TTSToggle } from "@/components/game/TTSToggle";
+import { HiddenCursorOverlay } from "@/components/game/HiddenCursorOverlay";
 import { GamePhase } from "@/types/game";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGameState } from "@/hooks/useGameState";
@@ -291,6 +292,7 @@ export default function App() {
                 ttsState={ttsState}
                 onToggle={handleTTSToggle}
               />
+              <HiddenCursorOverlay isHidden={currentQuestion?.hideCursors ?? false} />
               <AnsweringView
                 currentQuestion={currentQuestion}
                 currentQuestionIndex={currentQuestionIndex}
@@ -316,43 +318,44 @@ export default function App() {
             />
           )}
           <div className="cursors" aria-hidden>
-            {Object.entries(users)
-              .filter(([id]) => id !== myId)
-              .map(
-                ([id, u]) =>
-                  u.x != null &&
-                  u.y != null && (
-                    <div
-                      key={id}
-                      className="cursor"
-                      style={
-                        {
-                          left: u.x,
-                          top: u.y,
-                          "--color": u.color,
-                          "--velocity": u.velocity,
-                        } as React.CSSProperties
-                      }
-                    >
-                      <svg
-                        className="cursor-icon"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="32"
-                        height="32"
-                        viewBox="0 0 24 24"
+            {!currentQuestion?.hideCursors &&
+              Object.entries(users)
+                .filter(([id]) => id !== myId)
+                .map(
+                  ([id, u]) =>
+                    u.x != null &&
+                    u.y != null && (
+                      <div
+                        key={id}
+                        className="cursor"
+                        style={
+                          {
+                            left: u.x,
+                            top: u.y,
+                            "--color": u.color,
+                            "--velocity": u.velocity,
+                          } as React.CSSProperties
+                        }
                       >
-                        <path
-                          fill="none"
-                          stroke={u.color}
-                          strokeWidth={2}
-                          strokeLinejoin="round"
-                          d={CURSOR_PATH}
-                        />
-                      </svg>
-                      <span className="cursor-name">{u.name}</span>
-                    </div>
-                  )
-              )}
+                        <svg
+                          className="cursor-icon"
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="32"
+                          height="32"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            fill="none"
+                            stroke={u.color}
+                            strokeWidth={2}
+                            strokeLinejoin="round"
+                            d={CURSOR_PATH}
+                          />
+                        </svg>
+                        <span className="cursor-name">{u.name}</span>
+                      </div>
+                    )
+                )}
           </div>
         </div>
       </div>
