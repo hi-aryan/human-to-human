@@ -20,6 +20,9 @@ jobs:
           script: |
             set -e
             
+            # Add safe directory for git
+            git config --global --add safe.directory /root/h2h
+            
             # Clone or pull the repository
             if [ -d "/root/h2h/.git" ]; then
               cd /root/h2h
