@@ -21,17 +21,41 @@
   pointer-events: none;
 }
 
-.cursor {
+.cursor-wrapper {
   position: absolute;
   /* Hotspot offset: 32px icon / 8 (CURSOR_HOTSPOT_RATIO) = 4px from top-left */
   transform-origin: 4px 4px;
-  transform: translate(-4px, -4px) scale(calc(1 + var(--velocity, 0) * 0.4));
-  pointer-events: none;
-  transition: left 0.05s linear, top 0.05s linear, transform 0.2s ease-out;
+  transform: translate(-4px, -4px);
+  pointer-events: auto;
+  transition: left 0.05s linear, top 0.05s linear;
+}
+
+.cursor-wrapper.clickable {
+  cursor: pointer;
+}
+
+.cursor-wrapper.clickable:hover .cursor {
+  transform: scale(calc(1.1 + var(--velocity, 0) * 0.4));
+}
+
+.cursor-wrapper.clickable:active .cursor {
+  transform: scale(calc(0.95 + var(--velocity, 0) * 0.4));
+}
+
+.cursor {
+  position: relative;
+  transform: scale(calc(1 + var(--velocity, 0) * 0.4));
+  pointer-events: none; /* Children can override */
+  transition: transform 0.2s ease-out;
   display: flex;
   align-items: center;
   gap: 12px;
   white-space: nowrap;
+}
+
+.cursor.on-cooldown {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .cursor-icon {
@@ -72,4 +96,37 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--foreground) / 0.3);
+}
+
+/* Top-center banner notification */
+.nudge-banner {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100px);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.nudge-banner.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.nudge-banner-content {
+  background: hsl(var(--flexoki-bg));
+  border: 1px solid hsl(var(--flexoki-ui-3));
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+}
+
+.nudge-banner-content span {
+  font-weight: 700;
 }

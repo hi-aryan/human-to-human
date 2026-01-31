@@ -6,6 +6,7 @@ import { CreateLobbyView } from "@/components/game/CreateLobbyView";
 import { WaitingLobbyView } from "@/components/game/WaitingLobbyView";
 import { TTSToggle } from "@/components/game/TTSToggle";
 import { HiddenCursorOverlay } from "@/components/game/HiddenCursorOverlay";
+import { NudgeNotification } from "@/components/game/NudgeNotification";
 import { GamePhase } from "@/types/game";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGameState } from "@/hooks/useGameState";
@@ -13,7 +14,7 @@ import { useTTS } from "@/hooks/useTTS";
 import { getTotalPlayers } from "@/services/gameService";
 import { generateRoomId, getRoomIdFromUrl, setRoomIdInUrl, getRoomLink } from "@/lib/roomUtils";
 import { Button } from "@/components/ui/button";
-import type { ServerMessage, TTSResponseMessage, ReadyStatusMessage } from "@/types/messages";
+import type { ServerMessage, TTSResponseMessage, ReadyStatusMessage, NudgeMessage } from "@/types/messages";
 import "./App.css";
 
 const VIEWPORT_W = 1280;
@@ -116,6 +117,7 @@ export default function App() {
     lobbyConfig,
     questions,
     narrativeInsights,
+    nudgeCooldowns,
   } = gameState;
 
   // Update myId ref when it changes
@@ -160,6 +162,10 @@ export default function App() {
   const handleRevealRequest = (targetId: string) => {
     sendMessage({ type: "REVEAL_REQUEST", targetId });
   };
+
+  const handleNudge = useCallback((targetId: string) => {
+    sendMessage({ type: "NUDGE", targetId } as NudgeMessage);
+  }, [sendMessage]);
 
   const handleContinueToReveal = () => {
     sendMessage({ type: "TRANSITION_TO_REVEAL" });
@@ -381,38 +387,59 @@ export default function App() {
                     u.y != null && (
                       <div
                         key={id}
-                        className="cursor"
-                        style={
-                          {
-                            left: u.x,
-                            top: u.y,
-                            "--color": u.color,
-                            "--velocity": u.velocity,
-                          } as React.CSSProperties
+                        className="cursor-wrapper clickable"
+                        style={{
+                          left: u.x,
+                          top: u.y,
+                        } as React.CSSProperties}
+                        onClick={() => handleNudge(id)}
+                        title={
+                          (nudgeCooldowns[id] ?? 0) > Date.now()
+                            ? "Wait before nudging again"
+                            : `Click to nudge ${u.name}`
                         }
                       >
-                        <svg
-                          className="cursor-icon"
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="32"
-                          height="32"
-                          viewBox="0 0 24 24"
+                        <div
+                          className={`cursor ${(nudgeCooldowns[id] ?? 0) > Date.now() ? 'on-cooldown' : ''}`}
+                          style={
+                            {
+                              "--color": u.color,
+                              "--velocity": u.velocity,
+                            } as React.CSSProperties
+                          }
                         >
-                          <path
-                            fill="none"
-                            stroke={u.color}
-                            strokeWidth={2}
-                            strokeLinejoin="round"
-                            d={CURSOR_PATH}
-                          />
-                        </svg>
-                        <span className="cursor-name">{u.name}</span>
+                          <svg
+                            className="cursor-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="32"
+                            height="32"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              fill="none"
+                              stroke={u.color}
+                              strokeWidth={2}
+                              strokeLinejoin="round"
+                              d={CURSOR_PATH}
+                            />
+                          </svg>
+                          <span className="cursor-name">{u.name}</span>
+                        </div>
                       </div>
                     )
                 )}
           </div>
         </div>
       </div>
+      
+      {/* Show nudge notification as fixed top-center banner */}
+      {myId && users[myId]?.nudgeNotification && (
+        <NudgeNotification
+          from={users[myId].nudgeNotification.from}
+          color={users[myId].nudgeNotification.color}
+        />
+      )}
+      
       {roomId && (
         <div className="status-bar">
           <div className="flex items-center gap-4">

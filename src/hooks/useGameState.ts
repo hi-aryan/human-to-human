@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { GamePhase, type LobbyConfig, type Question } from "@/types/game";
 import type {
   ServerMessage,
@@ -11,6 +11,8 @@ import type {
   DeckGeneratingMessage,
   DeckReadyMessage,
   NarrativeMessage,
+  NudgeStatusMessage,
+  NudgeReceivedMessage,
 } from "@/types/messages";
 
 type User = { 
@@ -19,9 +21,12 @@ type User = {
   x: number | null; 
   y: number | null;
   velocity: number; // normalized 0-1
+  nudgeNotification?: { from: string; color: string; timestamp: number };
 };
 
 const MAX_DISTANCE = 150; // pixels at 30fps for fast movement
+const NUDGE_NOTIFICATION_DURATION_MS = 2000; // 2 seconds
+const NUDGE_COOLDOWN_MS = 10000; // 10 seconds (must match server constant)
 
 function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
@@ -55,11 +60,16 @@ export function useGameState() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isGeneratingDeck, setIsGeneratingDeck] = useState(false);
   const [narrativeInsights, setNarrativeInsights] = useState<string[]>([]);
+  const [nudgeCooldowns, setNudgeCooldowns] = useState<Record<string, number>>({});
+  const myIdRef = useRef<string | null>(null);
+  const nudgeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleMessage = useCallback((msg: ServerMessage) => {
     if (msg.type === "sync") {
       const syncMsg = msg as SyncMessage;
-      setMyId(syncMsg.self ?? null);
+      const currentMyId = syncMsg.self ?? null;
+      setMyId(currentMyId);
+      myIdRef.current = currentMyId;
       if (syncMsg.answeredBy) setAnsweredBy(syncMsg.answeredBy);
       if (syncMsg.phase) setPhase(syncMsg.phase as GamePhase);
       if (typeof syncMsg.currentQuestionIndex === "number") {
@@ -76,10 +86,16 @@ export function useGameState() {
         map[u.id] = { name: u.name, color: u.color, x: null, y: null, velocity: 0 };
       }
       setUsers(map);
+      setNudgeCooldowns({});
       setResults([]);
       setRevealedUsers(new Map());
       setIsGeneratingDeck(false);
       setNarrativeInsights([]);
+      // Clear nudge timeout on sync (room reset)
+      if (nudgeTimeoutRef.current) {
+        clearTimeout(nudgeTimeoutRef.current);
+        nudgeTimeoutRef.current = null;
+      }
       return;
     }
 
@@ -151,6 +167,73 @@ export function useGameState() {
       return;
     }
 
+    if (msg.type === "NUDGE_RECEIVED") {
+      const nudgeMsg = msg as NudgeReceivedMessage;
+      
+      // Clear any existing timeout
+      if (nudgeTimeoutRef.current) {
+        clearTimeout(nudgeTimeoutRef.current);
+        nudgeTimeoutRef.current = null;
+      }
+      
+      const currentMyId = myIdRef.current;
+      if (currentMyId) {
+        setUsers((prev) => {
+          const updated = { ...prev };
+          if (updated[currentMyId]) {
+            updated[currentMyId] = {
+              ...updated[currentMyId],
+              nudgeNotification: {
+                from: nudgeMsg.senderName,
+                color: nudgeMsg.senderColor,
+                timestamp: Date.now(),
+              },
+            };
+          }
+          return updated;
+        });
+        
+        // Auto-dismiss notification after duration
+        // Use myIdRef.current inside callback to avoid stale closure
+        nudgeTimeoutRef.current = setTimeout(() => {
+          const myIdAtTimeout = myIdRef.current;
+          if (myIdAtTimeout) {
+            setUsers((prevUsers) => {
+              const updatedUsers = { ...prevUsers };
+              if (updatedUsers[myIdAtTimeout]) {
+                updatedUsers[myIdAtTimeout] = {
+                  ...updatedUsers[myIdAtTimeout],
+                  nudgeNotification: undefined,
+                };
+              }
+              return updatedUsers;
+            });
+          }
+          nudgeTimeoutRef.current = null;
+        }, NUDGE_NOTIFICATION_DURATION_MS);
+      }
+      return;
+    }
+
+    if (msg.type === "NUDGE_STATUS") {
+      const statusMsg = msg as NudgeStatusMessage;
+      const cooldownRemaining = statusMsg.cooldownRemaining;
+      if (!statusMsg.success && cooldownRemaining !== undefined) {
+        // Update cooldown state for UI feedback
+        setNudgeCooldowns((prev) => ({
+          ...prev,
+          [statusMsg.targetId]: Date.now() + (cooldownRemaining * 1000),
+        }));
+      } else if (statusMsg.success) {
+        // Update cooldown locally using shared constant
+        setNudgeCooldowns((prev) => ({
+          ...prev,
+          [statusMsg.targetId]: Date.now() + NUDGE_COOLDOWN_MS,
+        }));
+      }
+      return;
+    }
+
     // Handle user join/leave/cursor updates
     if (msg.type === "join" || msg.type === "leave" || msg.type === "cursor") {
       setUsers((prev) => {
@@ -174,6 +257,16 @@ export function useGameState() {
     }
   }, []);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (nudgeTimeoutRef.current) {
+        clearTimeout(nudgeTimeoutRef.current);
+        nudgeTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   const currentQuestion = questions[currentQuestionIndex] ?? null;
 
   return {
@@ -189,6 +282,7 @@ export function useGameState() {
     questions,
     isGeneratingDeck,
     narrativeInsights,
+    nudgeCooldowns,
     handleMessage,
   };
 }

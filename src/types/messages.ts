@@ -48,6 +48,11 @@ export type PlayerReadyMessage = {
   type: "PLAYER_READY";
 };
 
+export type NudgeMessage = {
+  type: "NUDGE";
+  targetId: string;
+};
+
 export type ClientMessage = 
   | CursorMessage 
   | AnswerMessage 
@@ -57,7 +62,8 @@ export type ClientMessage =
   | ConfigureLobbyMessage
   | StartGameMessage
   | TTSRequestMessage
-  | PlayerReadyMessage;
+  | PlayerReadyMessage
+  | NudgeMessage;
 
 // Server → Client Messages
 export type UserInfo = {
@@ -177,6 +183,20 @@ export type ReadyStatusMessage = {
   readyUserIds: string[];
 };
 
+export type NudgeStatusMessage = {
+  type: "NUDGE_STATUS";
+  targetId: string;
+  success: boolean;
+  cooldownRemaining?: number; // seconds remaining if on cooldown
+};
+
+export type NudgeReceivedMessage = {
+  type: "NUDGE_RECEIVED";
+  senderId: string;
+  senderName: string;
+  senderColor: string;
+};
+
 export type ServerMessage =
   | SyncMessage
   | JoinMessage
@@ -192,7 +212,9 @@ export type ServerMessage =
   | DeckReadyMessage
   | TTSResponseMessage
   | NarrativeMessage
-  | ReadyStatusMessage;
+  | ReadyStatusMessage
+  | NudgeStatusMessage
+  | NudgeReceivedMessage;
 
 // Type Guards (validators)
 const MAX_ID_LENGTH = 64;
@@ -279,4 +301,15 @@ export function isValidPlayerReadyMessage(msg: unknown): msg is PlayerReadyMessa
   if (typeof msg !== "object" || msg === null) return false;
   const m = msg as Record<string, unknown>;
   return m.type === "PLAYER_READY";
+}
+
+export function isValidNudgeMessage(msg: unknown): msg is NudgeMessage {
+  if (typeof msg !== "object" || msg === null) return false;
+  const m = msg as Record<string, unknown>;
+  return (
+    m.type === "NUDGE" &&
+    typeof m.targetId === "string" &&
+    m.targetId.length > 0 &&
+    m.targetId.length <= MAX_ID_LENGTH
+  );
 }

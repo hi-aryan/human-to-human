@@ -7,6 +7,7 @@ import {
   isValidConfigureLobbyMessage,
   isValidTTSRequestMessage,
   isValidPlayerReadyMessage,
+  isValidNudgeMessage,
   type SyncMessage,
   type PlayerAnsweredMessage,
   type PhaseChangeMessage,
@@ -20,6 +21,8 @@ import {
   type TTSResponseMessage,
   type NarrativeMessage,
   type ReadyStatusMessage,
+  type NudgeStatusMessage,
+  type NudgeReceivedMessage,
 } from "./types/messages";
 import { GamePhase, QuestionType, type LobbyConfig, type Question } from "./types/game";
 import { getDeck, generateDeck, deckToQuestions } from "./services/deckService";
@@ -61,6 +64,9 @@ function randomColor(): string {
   return pick(FLEXOKI_200);
 }
 
+// Nudge configuration
+const NUDGE_COOLDOWN_MS = 10_000; // 10 seconds per-player cooldown
+
 // Answer value discriminated union to support multiple question types
 type AnswerValue = 
   | { type: "choice"; answerId: string }
@@ -101,6 +107,7 @@ export default class GameServer implements Party.Server {
   private narrativeInsights: string[] | null = null; // Cached narrative insights
   private narrativeGenerationPromise: Promise<void> | null = null; // Track ongoing narrative generation
   private resultsReadyPlayers = new Set<string>(); // Track who's ready on results screen
+  private nudgeCooldowns = new Map<string, Map<string, number>>(); // senderId → (targetId → timestamp)
 
   constructor(readonly room: Party.Room) {
     // Validate API key at startup (non-blocking warning)
@@ -369,6 +376,93 @@ export default class GameServer implements Party.Server {
       }
     }
 
+    // Handle nudge requests
+    if (isValidNudgeMessage(payload)) {
+      const senderId = sender.id;
+      const targetId = payload.targetId;
+      
+      // Prevent self-nudging
+      if (senderId === targetId) {
+        const status: NudgeStatusMessage = {
+          type: "NUDGE_STATUS",
+          targetId,
+          success: false,
+        };
+        sender.send(JSON.stringify(status));
+        return;
+      }
+      
+      // Validate target exists
+      const target = this.users.get(targetId);
+      const senderUser = this.users.get(senderId);
+      if (!target || !senderUser) {
+        // Send failure status
+        const status: NudgeStatusMessage = {
+          type: "NUDGE_STATUS",
+          targetId,
+          success: false,
+        };
+        sender.send(JSON.stringify(status));
+        return;
+      }
+      
+      // Don't allow nudging during hidden cursor questions
+      if (this.isCursorHidden()) {
+        const status: NudgeStatusMessage = {
+          type: "NUDGE_STATUS",
+          targetId,
+          success: false,
+        };
+        sender.send(JSON.stringify(status));
+        return;
+      }
+      
+      // Check per-player cooldown
+      const now = Date.now();
+      const senderCooldowns = this.nudgeCooldowns.get(senderId) || new Map();
+      const lastNudge = senderCooldowns.get(targetId) || 0;
+      const timeSinceLastNudge = now - lastNudge;
+      
+      if (timeSinceLastNudge < NUDGE_COOLDOWN_MS) {
+        // Still on cooldown - send status to sender
+        const cooldownRemaining = Math.ceil((NUDGE_COOLDOWN_MS - timeSinceLastNudge) / 1000);
+        const status: NudgeStatusMessage = {
+          type: "NUDGE_STATUS",
+          targetId,
+          success: false,
+          cooldownRemaining,
+        };
+        sender.send(JSON.stringify(status));
+        return;
+      }
+      
+      // Update cooldown
+      senderCooldowns.set(targetId, now);
+      this.nudgeCooldowns.set(senderId, senderCooldowns);
+      
+      // Send notification to target
+      const targetConn = Array.from(this.room.getConnections()).find(c => c.id === targetId);
+      if (targetConn) {
+        const nudgeReceived: NudgeReceivedMessage = {
+          type: "NUDGE_RECEIVED",
+          senderId: senderId,
+          senderName: senderUser.name,
+          senderColor: senderUser.color,
+        };
+        targetConn.send(JSON.stringify(nudgeReceived));
+      }
+      
+      // Send success status to sender
+      const status: NudgeStatusMessage = {
+        type: "NUDGE_STATUS",
+        targetId,
+        success: true,
+      };
+      sender.send(JSON.stringify(status));
+      
+      return;
+    }
+
     // Handle reveal requests
     if (isValidRevealRequestMessage(payload)) {
       if (this.phase !== GamePhase.REVEAL) return;
@@ -514,6 +608,7 @@ export default class GameServer implements Party.Server {
   private leave(connection: Party.Connection): void {
     this.users.delete(connection.id);
     this.revealRequests.delete(connection.id);
+    this.nudgeCooldowns.delete(connection.id);
     // Remove this user from other users' reveal request sets
     for (const requests of this.revealRequests.values()) {
       requests.delete(connection.id);
