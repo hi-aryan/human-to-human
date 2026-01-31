@@ -1,3 +1,5 @@
+import type { Question, LobbyConfig } from "./game";
+
 // Client → Server Messages
 export type CursorMessage = {
   type: "cursor";
@@ -28,7 +30,8 @@ export type TransitionToRevealMessage = {
 
 export type ConfigureLobbyMessage = {
   type: "CONFIGURE_LOBBY";
-  deck: string;
+  deck?: string;
+  aiTheme?: string;
 };
 
 export type StartGameMessage = {
@@ -58,7 +61,8 @@ export type SyncMessage = {
   answeredBy: Record<string, string[]>;
   phase: "LOBBY" | "ANSWERING" | "RESULTS" | "REVEAL";
   currentQuestionIndex: number;
-  lobbyConfig?: { deck: string } | null;
+  lobbyConfig: LobbyConfig | null;
+  questions: Question[];
 };
 
 export type JoinMessage = {
@@ -130,6 +134,17 @@ export type QuestionAdvanceMessage = {
   questionIndex: number;
 };
 
+export type DeckGeneratingMessage = {
+  type: "DECK_GENERATING";
+  theme: string;
+};
+
+export type DeckReadyMessage = {
+  type: "DECK_READY";
+  deckName: string;
+  questionCount: number;
+};
+
 export type ServerMessage =
   | SyncMessage
   | JoinMessage
@@ -140,7 +155,9 @@ export type ServerMessage =
   | ResultsMessage
   | RevealStatusMessage
   | RevealMutualMessage
-  | QuestionAdvanceMessage;
+  | QuestionAdvanceMessage
+  | DeckGeneratingMessage
+  | DeckReadyMessage;
 
 // Type Guards (validators)
 const MAX_ID_LENGTH = 64;
@@ -200,10 +217,11 @@ export function isValidSliderAnswerMessage(msg: unknown): msg is SliderAnswerMes
 export function isValidConfigureLobbyMessage(msg: unknown): msg is ConfigureLobbyMessage {
   if (typeof msg !== "object" || msg === null) return false;
   const m = msg as Record<string, unknown>;
-  return (
-    m.type === "CONFIGURE_LOBBY" &&
-    typeof m.deck === "string" &&
-    m.deck.length > 0 &&
-    m.deck.length <= MAX_ID_LENGTH
-  );
+  if (m.type !== "CONFIGURE_LOBBY") return false;
+  
+  // Must have either deck or aiTheme, but not both
+  const hasDeck = typeof m.deck === "string" && m.deck.length > 0 && m.deck.length <= MAX_ID_LENGTH;
+  const hasAiTheme = typeof m.aiTheme === "string" && m.aiTheme.length > 0 && m.aiTheme.length <= 200;
+  
+  return (hasDeck || hasAiTheme) && !(hasDeck && hasAiTheme);
 }

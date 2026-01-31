@@ -1,12 +1,13 @@
 import { QuestionCard } from "./QuestionCard";
 import { SliderQuestionCard } from "./SliderQuestionCard";
-import { PLACEHOLDER_QUESTIONS, QuestionType } from "@/types/game";
+import { QuestionType } from "@/types/game";
 import { getAnsweredCount, hasUserAnsweredQuestion } from "@/services/gameService";
 import type { Question } from "@/types/game";
 
 type AnsweringViewProps = {
-  currentQuestion: Question;
+  currentQuestion: Question | null;
   currentQuestionIndex: number;
+  questions: Question[];
   totalPlayers: number;
   answeredBy: Record<string, string[]>;
   myId: string | null;
@@ -18,6 +19,7 @@ type AnsweringViewProps = {
 export function AnsweringView({
   currentQuestion,
   currentQuestionIndex,
+  questions,
   totalPlayers,
   answeredBy,
   myId,
@@ -25,7 +27,9 @@ export function AnsweringView({
   onAnswer,
   onSliderAnswer,
 }: AnsweringViewProps) {
-  const totalQuestions = PLACEHOLDER_QUESTIONS.length;
+  if (!currentQuestion) return null;
+  
+  const totalQuestions = questions.length;
   const answeredCount = getAnsweredCount(currentQuestion.id, answeredBy);
   const hasAnswered = hasUserAnsweredQuestion(currentQuestion.id, myName, answeredBy);
 
@@ -47,7 +51,7 @@ export function AnsweringView({
       </div>
       {/* Question progress indicator */}
       <div className="absolute top-16 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-        {PLACEHOLDER_QUESTIONS.map((q, idx) => {
+        {questions.map((q, idx) => {
           const isAnswered = hasUserAnsweredQuestion(q.id, myName, answeredBy);
           const isCurrent = idx === currentQuestionIndex;
           return (

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { GamePhase, PLACEHOLDER_QUESTIONS, type LobbyConfig } from "@/types/game";
+import { GamePhase, type LobbyConfig, type Question } from "@/types/game";
 import type {
   ServerMessage,
   CompatibilityScore,
@@ -8,6 +8,8 @@ import type {
   ResultsMessage,
   RevealMutualMessage,
   QuestionAdvanceMessage,
+  DeckGeneratingMessage,
+  DeckReadyMessage,
 } from "@/types/messages";
 
 type User = { 
@@ -49,6 +51,8 @@ export function useGameState() {
     Map<string, { userId: string; name: string; color: string }>
   >(new Map());
   const [lobbyConfig, setLobbyConfig] = useState<LobbyConfig | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [isGeneratingDeck, setIsGeneratingDeck] = useState(false);
 
   const handleMessage = useCallback((msg: ServerMessage) => {
     if (msg.type === "sync") {
@@ -62,6 +66,9 @@ export function useGameState() {
       if (syncMsg.lobbyConfig !== undefined) {
         setLobbyConfig(syncMsg.lobbyConfig);
       }
+      if (syncMsg.questions) {
+        setQuestions(syncMsg.questions);
+      }
       const map: Record<string, User> = {};
       for (const u of syncMsg.users ?? []) {
         map[u.id] = { name: u.name, color: u.color, x: null, y: null, velocity: 0 };
@@ -69,6 +76,19 @@ export function useGameState() {
       setUsers(map);
       setResults([]);
       setRevealedUsers(new Map());
+      setIsGeneratingDeck(false);
+      return;
+    }
+
+    if (msg.type === "DECK_GENERATING") {
+      const generatingMsg = msg as DeckGeneratingMessage;
+      setIsGeneratingDeck(true);
+      return;
+    }
+
+    if (msg.type === "DECK_READY") {
+      const readyMsg = msg as DeckReadyMessage;
+      setIsGeneratingDeck(false);
       return;
     }
 
@@ -138,7 +158,7 @@ export function useGameState() {
     }
   }, []);
 
-  const currentQuestion = PLACEHOLDER_QUESTIONS[currentQuestionIndex];
+  const currentQuestion = questions[currentQuestionIndex] ?? null;
 
   return {
     users,
@@ -150,6 +170,8 @@ export function useGameState() {
     results,
     revealedUsers,
     lobbyConfig,
+    questions,
+    isGeneratingDeck,
     handleMessage,
   };
 }

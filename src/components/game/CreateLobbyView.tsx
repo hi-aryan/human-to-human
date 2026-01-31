@@ -6,14 +6,14 @@ type CreateLobbyViewProps = {
 };
 
 const DECKS = [
-  { value: "icebreaker", label: "Icebreaker" },
-  { value: "deep", label: "Deep Connections" },
-  { value: "spicy", label: "Spicy" },
-  { value: "wild", label: "Wild (AI)" },
+  { value: "(not yet) friends", label: "Friends", disabled: false },
+  { value: "coworkers", label: "Coworkers", disabled: true },
+  { value: "couples", label: "Couples", disabled: true },
+  { value: "party", label: "Party", disabled: true },
 ];
 
 export function CreateLobbyView({ onCreateLobby }: CreateLobbyViewProps) {
-  const [deck, setDeck] = useState("icebreaker");
+  const [deck, setDeck] = useState("(not yet) friends");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,14 +38,22 @@ export function CreateLobbyView({ onCreateLobby }: CreateLobbyViewProps) {
                 <button
                   key={d.value}
                   type="button"
-                  onClick={() => setDeck(d.value)}
-                  className={`px-4 py-3 rounded-md border transition-all ${
-                    deck === d.value
+                  onClick={() => !d.disabled && setDeck(d.value)}
+                  disabled={d.disabled}
+                  className={`px-4 py-3 rounded-md border transition-all relative ${
+                    d.disabled
+                      ? "border-input bg-muted opacity-50 cursor-not-allowed"
+                      : deck === d.value
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-input bg-background hover:border-primary/50"
                   }`}
                 >
-                  {d.label}
+                  <div className="flex flex-col items-center gap-1">
+                    <span>{d.label}</span>
+                    {d.disabled && (
+                      <span className="text-xs text-muted-foreground">Coming Soon</span>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>

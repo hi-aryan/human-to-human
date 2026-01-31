@@ -17,10 +17,7 @@ type WaitingLobbyViewProps = {
 };
 
 const DECK_LABELS: Record<string, string> = {
-  icebreaker: "Icebreaker",
-  deep: "Deep Connections",
-  spicy: "Spicy",
-  wild: "Wild (AI)",
+  "(not yet) friends": "Friends",
 };
 
 export function WaitingLobbyView({
@@ -56,11 +53,14 @@ export function WaitingLobbyView({
             {/* Lobby Config */}
             {lobbyConfig && (
               <div className="p-4 border border-border rounded-lg bg-muted/30">
-                <div className="text-sm font-medium mb-2">Lobby Settings</div>
                 <div className="text-sm">
                   <span className="text-muted-foreground">Deck: </span>
                   <span className="font-medium">
-                    {DECK_LABELS[lobbyConfig.deck] || lobbyConfig.deck}
+                    {lobbyConfig.deck
+                      ? DECK_LABELS[lobbyConfig.deck] || lobbyConfig.deck
+                      : lobbyConfig.aiTheme
+                      ? `AI: ${lobbyConfig.aiTheme}`
+                      : "Unknown"}
                   </span>
                 </div>
               </div>

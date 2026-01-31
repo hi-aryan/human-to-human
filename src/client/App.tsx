@@ -64,6 +64,7 @@ export default function App() {
     results,
     revealedUsers,
     lobbyConfig,
+    questions,
   } = gameState;
 
   const totalPlayers = getTotalPlayers(users);
@@ -237,6 +238,7 @@ export default function App() {
             <AnsweringView
               currentQuestion={currentQuestion}
               currentQuestionIndex={currentQuestionIndex}
+              questions={questions}
               totalPlayers={totalPlayers}
               answeredBy={answeredBy}
               myId={myId}

@@ -13,8 +13,11 @@ import {
   type RevealStatusMessage,
   type RevealMutualMessage,
   type QuestionAdvanceMessage,
+  type DeckGeneratingMessage,
+  type DeckReadyMessage,
 } from "./types/messages";
-import { GamePhase, PLACEHOLDER_QUESTIONS, QuestionType, type LobbyConfig, type Question } from "./types/game";
+import { GamePhase, QuestionType, type LobbyConfig, type Question } from "./types/game";
+import { getDeck, generateDeck, deckToQuestions } from "./services/deckService";
 
 // Name generation
 const ADJECTIVES = [
@@ -61,11 +64,21 @@ type UserState = {
   answers: Map<string, AnswerValue>; // questionId → answer value
 };
 
-// Abstracted question retrieval function for future AI integration
-function getQuestions(config: LobbyConfig | null): Question[] {
-  // For now, return placeholder questions regardless of config
-  // In the future, this can call an AI API to generate questions based on deck
-  return PLACEHOLDER_QUESTIONS;
+// Abstracted question retrieval function - now uses DeckService
+async function getQuestions(config: LobbyConfig | null): Promise<Question[]> {
+  if (!config) return [];
+  
+  if (config.aiTheme) {
+    // Generate AI deck
+    const deck = await generateDeck(config.aiTheme);
+    return deckToQuestions(deck);
+  } else if (config.deck) {
+    // Get static deck
+    const deck = getDeck(config.deck);
+    return deck ? deckToQuestions(deck) : [];
+  }
+  
+  return [];
 }
 
 export default class GameServer implements Party.Server {
@@ -74,7 +87,7 @@ export default class GameServer implements Party.Server {
   private currentQuestionIndex: number = 0;
   private revealRequests = new Map<string, Set<string>>(); // requesterId → Set<targetIds>
   private lobbyConfig: LobbyConfig | null = null;
-  private questions: Question[] = PLACEHOLDER_QUESTIONS;
+  private questions: Question[] = [];
 
   constructor(readonly room: Party.Room) {}
 
@@ -116,6 +129,7 @@ export default class GameServer implements Party.Server {
       phase: this.phase,
       currentQuestionIndex: this.currentQuestionIndex,
       lobbyConfig: this.lobbyConfig,
+      questions: this.questions,
     };
     connection.send(JSON.stringify(syncMsg));
 
@@ -211,31 +225,8 @@ export default class GameServer implements Party.Server {
       // Only allow configuring if not already configured (first one wins)
       if (this.lobbyConfig) return;
       
-      this.lobbyConfig = { deck: payload.deck };
-      // Generate questions based on config (currently returns placeholders)
-      this.questions = getQuestions(this.lobbyConfig);
-      // Send updated config to all players with correct self ID
-      const allUsers = [...this.room.getConnections()].map((c) => {
-        const u = this.users.get(c.id);
-        return {
-          id: c.id,
-          name: u?.name ?? "Unknown",
-          color: u?.color ?? "#999",
-        };
-      });
-      const answeredBy: Record<string, string[]> = {};
-      for (const connection of this.room.getConnections()) {
-        const syncMsg: SyncMessage = {
-          type: "sync",
-          self: connection.id,
-          users: allUsers,
-          answeredBy,
-          phase: this.phase,
-          currentQuestionIndex: this.currentQuestionIndex,
-          lobbyConfig: this.lobbyConfig,
-        };
-        connection.send(JSON.stringify(syncMsg));
-      }
+      // Handle async deck loading
+      this.handleConfigureLobby(payload);
       return;
     }
 
@@ -317,6 +308,72 @@ export default class GameServer implements Party.Server {
         sender.send(JSON.stringify(status));
       }
       return;
+    }
+  }
+
+  private async handleConfigureLobby(payload: { deck?: string; aiTheme?: string }): Promise<void> {
+    if (payload.aiTheme) {
+      // Generate AI deck
+      const generatingMsg: DeckGeneratingMessage = {
+        type: "DECK_GENERATING",
+        theme: payload.aiTheme,
+      };
+      this.room.broadcast(JSON.stringify(generatingMsg));
+      
+      try {
+        const deck = await generateDeck(payload.aiTheme);
+        this.questions = deckToQuestions(deck);
+        this.lobbyConfig = { aiTheme: payload.aiTheme };
+        
+        const readyMsg: DeckReadyMessage = {
+          type: "DECK_READY",
+          deckName: deck.deck_name,
+          questionCount: this.questions.length,
+        };
+        this.room.broadcast(JSON.stringify(readyMsg));
+      } catch (error) {
+        console.error("Failed to generate deck:", error);
+        // Reset config on error
+        this.lobbyConfig = null;
+        this.questions = [];
+        return;
+      }
+    } else if (payload.deck) {
+      // Get static deck
+      const deck = getDeck(payload.deck);
+      if (deck) {
+        this.questions = deckToQuestions(deck);
+        this.lobbyConfig = { deck: payload.deck };
+      } else {
+        // Invalid deck name
+        this.lobbyConfig = null;
+        this.questions = [];
+        return;
+      }
+    }
+    
+    // Send updated config to all players
+    const allUsers = [...this.room.getConnections()].map((c) => {
+      const u = this.users.get(c.id);
+      return {
+        id: c.id,
+        name: u?.name ?? "Unknown",
+        color: u?.color ?? "#999",
+      };
+    });
+    const answeredBy: Record<string, string[]> = {};
+    for (const connection of this.room.getConnections()) {
+      const syncMsg: SyncMessage = {
+        type: "sync",
+        self: connection.id,
+        users: allUsers,
+        answeredBy,
+        phase: this.phase,
+        currentQuestionIndex: this.currentQuestionIndex,
+        lobbyConfig: this.lobbyConfig,
+        questions: this.questions,
+      };
+      connection.send(JSON.stringify(syncMsg));
     }
   }
 
