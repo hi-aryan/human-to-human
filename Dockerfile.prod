@@ -1,22 +1,22 @@
-# Production Dockerfile
+# Development Dockerfile with hot reloading support
 FROM node:20-alpine
+
+# Install additional tools needed for development
+RUN apk add --no-cache git
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production=false
+RUN npm install
 
-# Copy source code
+# Copy the rest of the application
 COPY . .
 
-# Build the frontend
-RUN npm run build
+# Expose Vite dev server and PartyKit server ports
+EXPOSE 5173 1999
 
-# Expose PartyKit port
-EXPOSE 1999
-
-# Run PartyKit server in production mode
-CMD ["npx", "partykit", "dev", "--port", "1999"]
+# Default command runs the dev server
+CMD ["npm", "run", "dev"]
