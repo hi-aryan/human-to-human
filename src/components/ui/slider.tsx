@@ -12,6 +12,30 @@ export type SliderProps = {
 };
 
 /**
+ * Calculate fill intensity (0-1) for edge labels based on slider position.
+ * Only the closest 3 positions (half the total) affect each edge label's fill.
+ */
+function calculateEdgeFillIntensity(
+  labelIndex: number,
+  value: number,
+  positions: number
+): number {
+  const halfCount = positions / 2;
+  const isLeftLabel = labelIndex === 0;
+  const isRightLabel = labelIndex === positions - 1;
+
+  if (isLeftLabel) {
+    // Left label: fill decreases as value moves away from 0
+    return value < halfCount ? (halfCount - value) / halfCount : 0;
+  } else if (isRightLabel) {
+    // Right label: fill increases as value approaches max
+    return value >= halfCount ? (value - halfCount + 1) / halfCount : 0;
+  }
+
+  return 0;
+}
+
+/**
  * Categorical slider with discrete snapping positions and labels.
  * Uses native range input with custom styling for accessibility and cross-browser support.
  */
@@ -104,18 +128,39 @@ export const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
                 
                 const position = labels.length > 1 ? (index / (labels.length - 1)) * 100 : 50;
                 const isSelected = value === index;
+                
+                // Calculate fill intensity for edge labels (0-1)
+                const fillIntensity = labelStyle === "edges" && isEdge
+                  ? calculateEdgeFillIntensity(index, value, positions)
+                  : 0;
+                
+                // For edge labels: interpolate opacity from muted (0.5) to full primary (1.0)
+                // Default color (muted-foreground) is preserved when fillIntensity is 0
+                const useFillEffect = labelStyle === "edges" && isEdge && fillIntensity > 0;
+                const edgeOpacity = useFillEffect
+                  ? 0.5 + fillIntensity * 0.5  // Linear interpolation: 0.5 → 1.0
+                  : undefined;
+                
                 return (
                   <span
                     key={index}
                     className={cn(
-                      "text-xs text-center transition-colors",
-                      isSelected ? "text-primary font-medium" : "text-muted-foreground"
+                      "text-xs text-center transition-all duration-150",
+                      useFillEffect
+                        ? "text-primary"
+                        : isSelected
+                        ? "text-primary font-medium"
+                        : "text-muted-foreground"
                     )}
                     style={{
                       position: "absolute",
                       left: `${position}%`,
                       transform: "translateX(-50%)",
                       width: labelStyle === "edges" ? "auto" : `${100 / labels.length}%`,
+                      opacity: edgeOpacity,
+                      fontWeight: useFillEffect && fillIntensity === 1
+                        ? "500"
+                        : undefined,
                     }}
                   >
                     {label}
