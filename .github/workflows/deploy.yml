@@ -11,7 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Deploy via SSH
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 159.69.188.230
+          username: root
+          key: ${{ secrets.SSH_KEY }}
+          source: "."
+          target: "/root/h2h"
+          rm: true
+
+      - name: Build and deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 159.69.188.230
@@ -19,21 +32,6 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
-            
-            # Create directory if it doesn't exist
-            mkdir -p /root/h2h
-            
-            # Clone or pull the repository
-            if [ -d "/root/h2h/.git" ]; then
-              cd /root/h2h
-              git fetch origin
-              git reset --hard origin/main
-              git clean -fd
-            else
-              rm -rf /root/h2h
-              git clone https://github.com/${{ github.repository }}.git /root/h2h
-            fi
-            
             cd /root/h2h
             
             # Stop existing container
