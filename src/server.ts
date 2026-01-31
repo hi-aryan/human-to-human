@@ -143,6 +143,9 @@ export default class GameServer implements Party.Server {
       const player = this.users.get(sender.id);
       if (!player) return;
 
+      // First answer wins - no changes allowed
+      if (player.answers.has(payload.questionId)) return;
+
       player.answers.set(payload.questionId, payload.answerId);
 
       const event: PlayerAnsweredMessage = {
