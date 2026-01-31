@@ -23,9 +23,9 @@
 
 .cursor {
   position: absolute;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(calc(1 + var(--velocity, 0) * 0.4));
   pointer-events: none;
-  transition: left 0.05s linear, top 0.05s linear;
+  transition: left 0.05s linear, top 0.05s linear, transform 0.2s ease-out;
   display: flex;
   align-items: center;
   gap: 12px;

@@ -209,6 +209,7 @@ export default function App() {
                           left: u.x,
                           top: u.y,
                           "--color": u.color,
+                          "--velocity": u.velocity,
                         } as React.CSSProperties
                       }
                     >

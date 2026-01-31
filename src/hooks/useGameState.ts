@@ -10,7 +10,33 @@ import type {
   QuestionAdvanceMessage,
 } from "@/types/messages";
 
-type User = { name: string; color: string; x: number | null; y: number | null };
+type User = { 
+  name: string; 
+  color: string; 
+  x: number | null; 
+  y: number | null;
+  velocity: number; // normalized 0-1
+};
+
+const MAX_DISTANCE = 150; // pixels at 30fps for fast movement
+
+function clamp(n: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function calculateVelocity(
+  prevX: number | null,
+  prevY: number | null,
+  currX: number,
+  currY: number
+): number {
+  if (prevX === null || prevY === null) return 0;
+  const dx = currX - prevX;
+  const dy = currY - prevY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const normalized = distance / MAX_DISTANCE;
+  return clamp(normalized, 0, 1);
+}
 
 export function useGameState() {
   const [users, setUsers] = useState<Record<string, User>>({});
@@ -34,7 +60,7 @@ export function useGameState() {
       }
       const map: Record<string, User> = {};
       for (const u of syncMsg.users ?? []) {
-        map[u.id] = { name: u.name, color: u.color, x: null, y: null };
+        map[u.id] = { name: u.name, color: u.color, x: null, y: null, velocity: 0 };
       }
       setUsers(map);
       setResults([]);
@@ -90,7 +116,7 @@ export function useGameState() {
       setUsers((prev) => {
         const next = { ...prev };
         if (msg.type === "join") {
-          next[msg.id] = { name: msg.name, color: msg.color, x: null, y: null };
+          next[msg.id] = { name: msg.name, color: msg.color, x: null, y: null, velocity: 0 };
           return next;
         }
         if (msg.type === "leave") {
@@ -98,7 +124,9 @@ export function useGameState() {
           return next;
         }
         if (msg.type === "cursor" && next[msg.id]) {
-          next[msg.id] = { ...next[msg.id], x: msg.x, y: msg.y };
+          const prev = next[msg.id];
+          const velocity = calculateVelocity(prev.x, prev.y, msg.x, msg.y);
+          next[msg.id] = { ...next[msg.id], x: msg.x, y: msg.y, velocity };
           return next;
         }
         return prev;
