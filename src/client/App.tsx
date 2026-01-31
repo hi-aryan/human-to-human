@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { AnsweringView } from "@/components/game/AnsweringView";
 import { ResultsView } from "@/components/game/ResultsView";
 import { RevealView } from "@/components/game/RevealView";
+import { CreateLobbyView } from "@/components/game/CreateLobbyView";
+import { WaitingLobbyView } from "@/components/game/WaitingLobbyView";
 import { GamePhase } from "@/types/game";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGameState } from "@/hooks/useGameState";
@@ -37,21 +39,18 @@ export default function App() {
   const lastSendRef = useRef(0);
   const THROTTLE_MS = 1000 / 30; // 30 FPS cursor updates
 
-  // Initialize roomId from URL or generate new one
-  const [roomId, setRoomId] = useState<string>(() => {
-    const urlRoomId = getRoomIdFromUrl();
-    if (urlRoomId) {
-      return urlRoomId;
-    }
-    const newRoomId = generateRoomId();
-    setRoomIdInUrl(newRoomId);
-    return newRoomId;
+  // Initialize roomId from URL - don't auto-generate
+  const [roomId, setRoomId] = useState<string | null>(() => {
+    return getRoomIdFromUrl();
   });
 
-  // Use custom hooks for game state and WebSocket
+  // Store pending lobby config when creating a new lobby
+  const [pendingLobbyConfig, setPendingLobbyConfig] = useState<{ deck: string } | null>(null);
+
+  // Use custom hooks for game state and WebSocket (only connect if roomId exists)
   const gameState = useGameState();
   const { status, sendMessage } = useWebSocket({
-    roomId,
+    roomId: roomId || "",
     onMessage: gameState.handleMessage,
   });
 
@@ -64,6 +63,7 @@ export default function App() {
     phase,
     results,
     revealedUsers,
+    lobbyConfig,
   } = gameState;
 
   const totalPlayers = getTotalPlayers(users);
@@ -81,12 +81,17 @@ export default function App() {
   };
 
   const handleResetGame = () => {
-    const newRoomId = generateRoomId();
-    setRoomId(newRoomId);
-    setRoomIdInUrl(newRoomId);
+    // Navigate back to lobby creation instead of creating unconfigured room
+    setRoomId(null);
+    setPendingLobbyConfig(null);
+    // Clear room from URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete("room");
+    window.history.pushState({}, "", url);
   };
 
   const handleCopyRoomLink = async () => {
+    if (!roomId) return;
     const roomLink = getRoomLink(roomId);
     try {
       await navigator.clipboard.writeText(roomLink);
@@ -103,12 +108,37 @@ export default function App() {
     sendMessage({ type: "TRANSITION_TO_REVEAL" });
   };
 
+  const handleCreateLobby = (config: { deck: string }) => {
+    const newRoomId = generateRoomId();
+    setPendingLobbyConfig(config);
+    setRoomId(newRoomId);
+    setRoomIdInUrl(newRoomId);
+  };
+
+  const handleStartGame = () => {
+    sendMessage({ type: "START_GAME" });
+  };
+
+  // Send lobby config when room is created and WebSocket is connected
+  useEffect(() => {
+    if (roomId && status === "connected" && phase === GamePhase.LOBBY && pendingLobbyConfig && !lobbyConfig) {
+      sendMessage({
+        type: "CONFIGURE_LOBBY",
+        deck: pendingLobbyConfig.deck,
+      });
+      setPendingLobbyConfig(null);
+    }
+  }, [roomId, status, phase, pendingLobbyConfig, lobbyConfig, sendMessage]);
+
   // Sync roomId with URL changes (browser navigation)
   useEffect(() => {
     const handlePopState = () => {
       const urlRoomId = getRoomIdFromUrl();
-      if (urlRoomId && urlRoomId !== roomId) {
+      if (urlRoomId !== roomId) {
         setRoomId(urlRoomId);
+        if (!urlRoomId) {
+          setPendingLobbyConfig(null);
+        }
       }
     };
     window.addEventListener("popstate", handlePopState);
@@ -164,6 +194,24 @@ export default function App() {
     };
   }, []);
 
+  // If no roomId in URL, show create lobby view
+  if (!roomId) {
+    return (
+      <div className="viewport-container">
+        <div
+          className="viewport"
+          style={{
+            width: VIEWPORT_W,
+            height: VIEWPORT_H,
+            transform: `scale(${scale})`,
+          }}
+        >
+          <CreateLobbyView onCreateLobby={handleCreateLobby} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="viewport-container" style={cursorStyle}>
@@ -176,6 +224,15 @@ export default function App() {
             transform: `scale(${scale})`,
           }}
         >
+          {phase === GamePhase.LOBBY && roomId && (
+            <WaitingLobbyView
+              users={users}
+              lobbyConfig={lobbyConfig}
+              roomLink={getRoomLink(roomId)}
+              onStartGame={handleStartGame}
+              onCopyLink={handleCopyRoomLink}
+            />
+          )}
           {phase === GamePhase.ANSWERING && (
             <AnsweringView
               currentQuestion={currentQuestion}
@@ -240,22 +297,24 @@ export default function App() {
           </div>
         </div>
       </div>
-      <div className="status-bar">
-        <div className="flex items-center gap-4">
-          <span>{status}</span>
-          <span className="text-sm text-muted-foreground">Phase: {phase}</span>
-          <span className="text-sm text-muted-foreground">Room: {roomId}</span>
-          <span className="text-sm text-muted-foreground">Players: {totalPlayers}</span>
-          <Button
-            onClick={handleCopyRoomLink}
-            variant="outline"
-            size="sm"
-            className="h-7 px-2 text-xs"
-          >
-            Copy Link
-          </Button>
+      {roomId && (
+        <div className="status-bar">
+          <div className="flex items-center gap-4">
+            <span>{status}</span>
+            <span className="text-sm text-muted-foreground">Phase: {phase}</span>
+            <span className="text-sm text-muted-foreground">Room: {roomId}</span>
+            <span className="text-sm text-muted-foreground">Players: {totalPlayers}</span>
+            <Button
+              onClick={handleCopyRoomLink}
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+            >
+              Copy Link
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

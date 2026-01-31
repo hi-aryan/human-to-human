@@ -39,10 +39,15 @@ export type SliderQuestion = BaseQuestion & {
 export type Question = MultipleChoiceQuestion | SliderQuestion;
 
 export enum GamePhase {
+  LOBBY = "LOBBY",      // NEW: Waiting for players
   ANSWERING = "ANSWERING",
   RESULTS = "RESULTS",
   REVEAL = "REVEAL",
 }
+
+export type LobbyConfig = {
+  deck: string;  // e.g., "icebreaker", "deep", "wild" (AI-generated)
+};
 
 // Example placeholder questions (replace with your game content)
 export const PLACEHOLDER_QUESTIONS: Question[] = [

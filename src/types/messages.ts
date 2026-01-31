@@ -26,12 +26,23 @@ export type TransitionToRevealMessage = {
   type: "TRANSITION_TO_REVEAL";
 };
 
+export type ConfigureLobbyMessage = {
+  type: "CONFIGURE_LOBBY";
+  deck: string;
+};
+
+export type StartGameMessage = {
+  type: "START_GAME";
+};
+
 export type ClientMessage = 
   | CursorMessage 
   | AnswerMessage 
   | SliderAnswerMessage
   | RevealRequestClientMessage 
-  | TransitionToRevealMessage;
+  | TransitionToRevealMessage
+  | ConfigureLobbyMessage
+  | StartGameMessage;
 
 // Server → Client Messages
 export type UserInfo = {
@@ -45,8 +56,9 @@ export type SyncMessage = {
   self: string;
   users: UserInfo[];
   answeredBy: Record<string, string[]>;
-  phase: "ANSWERING" | "RESULTS" | "REVEAL";
+  phase: "LOBBY" | "ANSWERING" | "RESULTS" | "REVEAL";
   currentQuestionIndex: number;
+  lobbyConfig?: { deck: string } | null;
 };
 
 export type JoinMessage = {
@@ -78,7 +90,7 @@ export type PlayerAnsweredMessage = {
 
 export type PhaseChangeMessage = {
   type: "PHASE_CHANGE";
-  phase: "ANSWERING" | "RESULTS" | "REVEAL";
+  phase: "LOBBY" | "ANSWERING" | "RESULTS" | "REVEAL";
 };
 
 export type CompatibilityScore = {
@@ -182,5 +194,16 @@ export function isValidSliderAnswerMessage(msg: unknown): msg is SliderAnswerMes
     Number.isFinite(m.value) &&
     m.value >= 0 &&
     m.value <= 100
+  );
+}
+
+export function isValidConfigureLobbyMessage(msg: unknown): msg is ConfigureLobbyMessage {
+  if (typeof msg !== "object" || msg === null) return false;
+  const m = msg as Record<string, unknown>;
+  return (
+    m.type === "CONFIGURE_LOBBY" &&
+    typeof m.deck === "string" &&
+    m.deck.length > 0 &&
+    m.deck.length <= MAX_ID_LENGTH
   );
 }

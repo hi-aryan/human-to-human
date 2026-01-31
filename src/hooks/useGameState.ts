@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { GamePhase, PLACEHOLDER_QUESTIONS } from "@/types/game";
+import { GamePhase, PLACEHOLDER_QUESTIONS, type LobbyConfig } from "@/types/game";
 import type {
   ServerMessage,
   CompatibilityScore,
@@ -43,11 +43,12 @@ export function useGameState() {
   const [myId, setMyId] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answeredBy, setAnsweredBy] = useState<Record<string, string[]>>({});
-  const [phase, setPhase] = useState<GamePhase>(GamePhase.ANSWERING);
+  const [phase, setPhase] = useState<GamePhase>(GamePhase.LOBBY);
   const [results, setResults] = useState<CompatibilityScore[]>([]);
   const [revealedUsers, setRevealedUsers] = useState<
     Map<string, { userId: string; name: string; color: string }>
   >(new Map());
+  const [lobbyConfig, setLobbyConfig] = useState<LobbyConfig | null>(null);
 
   const handleMessage = useCallback((msg: ServerMessage) => {
     if (msg.type === "sync") {
@@ -57,6 +58,9 @@ export function useGameState() {
       if (syncMsg.phase) setPhase(syncMsg.phase as GamePhase);
       if (typeof syncMsg.currentQuestionIndex === "number") {
         setCurrentQuestionIndex(syncMsg.currentQuestionIndex);
+      }
+      if (syncMsg.lobbyConfig !== undefined) {
+        setLobbyConfig(syncMsg.lobbyConfig);
       }
       const map: Record<string, User> = {};
       for (const u of syncMsg.users ?? []) {
@@ -145,6 +149,7 @@ export function useGameState() {
     phase,
     results,
     revealedUsers,
+    lobbyConfig,
     handleMessage,
   };
 }

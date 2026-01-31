@@ -4,6 +4,7 @@ import {
   isValidCursorMessage,
   isValidRevealRequestMessage,
   isValidSliderAnswerMessage,
+  isValidConfigureLobbyMessage,
   type SyncMessage,
   type PlayerAnsweredMessage,
   type PhaseChangeMessage,
@@ -13,7 +14,7 @@ import {
   type RevealMutualMessage,
   type QuestionAdvanceMessage,
 } from "./types/messages";
-import { GamePhase, PLACEHOLDER_QUESTIONS, QuestionType } from "./types/game";
+import { GamePhase, PLACEHOLDER_QUESTIONS, QuestionType, type LobbyConfig, type Question } from "./types/game";
 
 // Name generation
 const ADJECTIVES = [
@@ -60,11 +61,20 @@ type UserState = {
   answers: Map<string, AnswerValue>; // questionId → answer value
 };
 
+// Abstracted question retrieval function for future AI integration
+function getQuestions(config: LobbyConfig | null): Question[] {
+  // For now, return placeholder questions regardless of config
+  // In the future, this can call an AI API to generate questions based on deck
+  return PLACEHOLDER_QUESTIONS;
+}
+
 export default class GameServer implements Party.Server {
   private users = new Map<string, UserState>();
-  private phase: GamePhase = GamePhase.ANSWERING;
+  private phase: GamePhase = GamePhase.LOBBY;
   private currentQuestionIndex: number = 0;
   private revealRequests = new Map<string, Set<string>>(); // requesterId → Set<targetIds>
+  private lobbyConfig: LobbyConfig | null = null;
+  private questions: Question[] = PLACEHOLDER_QUESTIONS;
 
   constructor(readonly room: Party.Room) {}
 
@@ -105,6 +115,7 @@ export default class GameServer implements Party.Server {
       answeredBy,
       phase: this.phase,
       currentQuestionIndex: this.currentQuestionIndex,
+      lobbyConfig: this.lobbyConfig,
     };
     connection.send(JSON.stringify(syncMsg));
 
@@ -194,8 +205,63 @@ export default class GameServer implements Party.Server {
       return;
     }
 
-    // Handle transition to reveal phase
+    // Handle lobby configuration
+    if (isValidConfigureLobbyMessage(payload)) {
+      if (this.phase !== GamePhase.LOBBY) return;
+      // Only allow configuring if not already configured (first one wins)
+      if (this.lobbyConfig) return;
+      
+      this.lobbyConfig = { deck: payload.deck };
+      // Generate questions based on config (currently returns placeholders)
+      this.questions = getQuestions(this.lobbyConfig);
+      // Send updated config to all players with correct self ID
+      const allUsers = [...this.room.getConnections()].map((c) => {
+        const u = this.users.get(c.id);
+        return {
+          id: c.id,
+          name: u?.name ?? "Unknown",
+          color: u?.color ?? "#999",
+        };
+      });
+      const answeredBy: Record<string, string[]> = {};
+      for (const connection of this.room.getConnections()) {
+        const syncMsg: SyncMessage = {
+          type: "sync",
+          self: connection.id,
+          users: allUsers,
+          answeredBy,
+          phase: this.phase,
+          currentQuestionIndex: this.currentQuestionIndex,
+          lobbyConfig: this.lobbyConfig,
+        };
+        connection.send(JSON.stringify(syncMsg));
+      }
+      return;
+    }
+
     if (payload && typeof payload === "object" && "type" in payload) {
+
+      // Handle start game (transition from LOBBY to ANSWERING)
+      if (payload.type === "START_GAME") {
+        if (this.phase !== GamePhase.LOBBY) return;
+        const connectedUsers = [...this.room.getConnections()];
+        // Require at least 2 players to start
+        if (connectedUsers.length < 2) return;
+        // Ensure lobby is configured
+        if (!this.lobbyConfig) return;
+        
+        this.phase = GamePhase.ANSWERING;
+        this.currentQuestionIndex = 0;
+        
+        const phaseChange: PhaseChangeMessage = {
+          type: "PHASE_CHANGE",
+          phase: GamePhase.ANSWERING,
+        };
+        this.room.broadcast(JSON.stringify(phaseChange));
+        return;
+      }
+
+      // Handle transition to reveal phase
       if (payload.type === "TRANSITION_TO_REVEAL") {
         if (this.phase === GamePhase.RESULTS) {
           this.transitionToReveal();
@@ -284,11 +350,11 @@ export default class GameServer implements Party.Server {
     if (connectedUsers.length < 2) return false;
 
     // Check if we've already answered all questions
-    if (this.currentQuestionIndex >= PLACEHOLDER_QUESTIONS.length) {
+    if (this.currentQuestionIndex >= this.questions.length) {
       return false;
     }
 
-    const currentQuestion = PLACEHOLDER_QUESTIONS[this.currentQuestionIndex];
+    const currentQuestion = this.questions[this.currentQuestionIndex];
 
     // All users must have answered the current question
     return connectedUsers.every((conn) => {
@@ -301,7 +367,7 @@ export default class GameServer implements Party.Server {
     this.currentQuestionIndex++;
 
     // Check if completed all questions
-    if (this.currentQuestionIndex >= PLACEHOLDER_QUESTIONS.length) {
+    if (this.currentQuestionIndex >= this.questions.length) {
       this.transitionToResults();
       return;
     }
@@ -332,7 +398,7 @@ export default class GameServer implements Party.Server {
       } else if (answerA.type === "slider" && answerB.type === "slider") {
         // Proximity score for slider: normalize to 0-1 range based on question positions
         // Find the question to get its positions count
-        const question = PLACEHOLDER_QUESTIONS.find((q) => q.id === qId);
+        const question = this.questions.find((q) => q.id === qId);
         if (question && question.type === QuestionType.SLIDER) {
           const maxPosition = question.config.positions - 1;
           if (maxPosition > 0) {

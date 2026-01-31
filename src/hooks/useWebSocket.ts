@@ -26,6 +26,12 @@ export function useWebSocket({ roomId, onMessage }: UseWebSocketOptions) {
   };
 
   useEffect(() => {
+    // Don't connect if roomId is empty
+    if (!roomId) {
+      setStatus("disconnected");
+      return;
+    }
+
     // Close existing connection if roomId changes
     if (wsRef.current) {
       wsRef.current.close();
