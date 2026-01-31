@@ -17,8 +17,8 @@ services:
       - "traefik.http.routers.h2h.tls.certresolver=letsencrypt"
       - "traefik.http.services.h2h.loadbalancer.server.port=1999"
     networks:
-      - traefik
+      - traefik_default
 
 networks:
-  traefik:
+  traefik_default:
     external: true
