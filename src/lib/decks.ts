@@ -9,7 +9,7 @@ export interface SliderCard {
   card_name: string;
   question: string;
   type: "slider";
-  answers: [string, string];
+  answers: [string, string] | [string, string, string, string, string];
 }
 
 export type Card = ButtonCard | SliderCard;

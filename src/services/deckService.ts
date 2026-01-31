@@ -15,16 +15,33 @@ function cardToQuestion(card: Card): Question {
       answers: card.answers.map((text, i) => ({ id: `a${i + 1}`, text })),
     };
   } else {
-    return {
-      id: card.card_name,
-      text: card.question,
-      type: QuestionType.SLIDER,
-      config: {
-        positions: 5,
-        labels: [card.answers[0], "", "", "", card.answers[1]],
-        labelStyle: "edges" as const,
-      },
-    };
+    // Slider cards: 2 answers = 6 positions with edge labels, 5 answers = 5 positions with all labels
+    const answerCount = card.answers.length;
+    if (answerCount === 2) {
+      return {
+        id: card.card_name,
+        text: card.question,
+        type: QuestionType.SLIDER,
+        config: {
+          positions: 6,
+          labels: [card.answers[0], "", "", "", "", card.answers[1]],
+          labelStyle: "edges" as const,
+        },
+      };
+    } else if (answerCount === 5) {
+      return {
+        id: card.card_name,
+        text: card.question,
+        type: QuestionType.SLIDER,
+        config: {
+          positions: 5,
+          labels: card.answers,
+          labelStyle: "all" as const,
+        },
+      };
+    } else {
+      throw new Error(`Slider card must have 2 or 5 answers, got ${answerCount}`);
+    }
   }
 }
 
