@@ -1,6 +1,9 @@
 # Production Dockerfile for PartyKit
 FROM node:20-slim
 
+# Install CA certificates for TLS verification
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy package files first for better caching
