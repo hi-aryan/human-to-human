@@ -6,7 +6,7 @@ type HiddenCursorOverlayProps = {
 
 type OverlayState = "idle" | "announcing" | "banner";
 
-const ANNOUNCEMENT_DURATION_MS = 3000;
+const ANNOUNCEMENT_DURATION_MS = 2000;
 
 export function HiddenCursorOverlay({ isHidden }: HiddenCursorOverlayProps) {
   const [state, setState] = useState<OverlayState>("idle");

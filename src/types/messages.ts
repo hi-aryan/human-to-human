@@ -44,6 +44,10 @@ export type TTSRequestMessage = {
   requestId: string;
 };
 
+export type PlayerReadyMessage = {
+  type: "PLAYER_READY";
+};
+
 export type ClientMessage = 
   | CursorMessage 
   | AnswerMessage 
@@ -52,7 +56,8 @@ export type ClientMessage =
   | TransitionToRevealMessage
   | ConfigureLobbyMessage
   | StartGameMessage
-  | TTSRequestMessage;
+  | TTSRequestMessage
+  | PlayerReadyMessage;
 
 // Server → Client Messages
 export type UserInfo = {
@@ -165,6 +170,13 @@ export type NarrativeMessage = {
   insights: string[];  // Array of narrative strings
 };
 
+export type ReadyStatusMessage = {
+  type: "READY_STATUS";
+  readyCount: number;
+  totalPlayers: number;
+  readyUserIds: string[];
+};
+
 export type ServerMessage =
   | SyncMessage
   | JoinMessage
@@ -179,7 +191,8 @@ export type ServerMessage =
   | DeckGeneratingMessage
   | DeckReadyMessage
   | TTSResponseMessage
-  | NarrativeMessage;
+  | NarrativeMessage
+  | ReadyStatusMessage;
 
 // Type Guards (validators)
 const MAX_ID_LENGTH = 64;

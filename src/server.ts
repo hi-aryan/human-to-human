@@ -18,6 +18,7 @@ import {
   type DeckReadyMessage,
   type TTSResponseMessage,
   type NarrativeMessage,
+  type ReadyStatusMessage,
 } from "./types/messages";
 import { GamePhase, QuestionType, type LobbyConfig, type Question } from "./types/game";
 import { getDeck, generateDeck, deckToQuestions } from "./services/deckService";
@@ -98,6 +99,7 @@ export default class GameServer implements Party.Server {
   private answerOrderCounters = new Map<string, number>(); // questionId → counter for answer order
   private narrativeInsights: string[] | null = null; // Cached narrative insights
   private narrativeGenerationPromise: Promise<void> | null = null; // Track ongoing narrative generation
+  private resultsReadyPlayers = new Set<string>(); // Track who's ready on results screen
 
   constructor(readonly room: Party.Room) {
     // Validate API key at startup (non-blocking warning)
@@ -352,6 +354,15 @@ export default class GameServer implements Party.Server {
       if (payload.type === "TRANSITION_TO_REVEAL") {
         if (this.phase === GamePhase.RESULTS) {
           this.transitionToReveal();
+        }
+        return;
+      }
+
+      // Handle player ready for results
+      if (payload.type === "PLAYER_READY") {
+        if (this.phase === GamePhase.RESULTS) {
+          this.resultsReadyPlayers.add(sender.id);
+          this.broadcastReadyStatus();
         }
         return;
       }
@@ -614,6 +625,9 @@ export default class GameServer implements Party.Server {
     if (this.phase !== GamePhase.ANSWERING) return;
 
     this.phase = GamePhase.RESULTS;
+    
+    // Clear ready players when entering RESULTS phase
+    this.resultsReadyPlayers.clear();
 
     // Broadcast phase change
     const phaseChange: PhaseChangeMessage = {
@@ -626,6 +640,9 @@ export default class GameServer implements Party.Server {
     for (const connection of this.room.getConnections()) {
       this.sendResultsToConnection(connection);
     }
+
+    // Broadcast initial ready status (0 ready)
+    this.broadcastReadyStatus();
 
     // Generate and send narrative (async, non-blocking)
     this.generateAndSendNarrative();
@@ -818,5 +835,15 @@ export default class GameServer implements Party.Server {
       phase: GamePhase.REVEAL,
     };
     this.room.broadcast(JSON.stringify(phaseChange));
+  }
+
+  private broadcastReadyStatus(): void {
+    const readyMsg: ReadyStatusMessage = {
+      type: "READY_STATUS",
+      readyCount: this.resultsReadyPlayers.size,
+      totalPlayers: this.users.size,
+      readyUserIds: Array.from(this.resultsReadyPlayers),
+    };
+    this.room.broadcast(JSON.stringify(readyMsg));
   }
 }

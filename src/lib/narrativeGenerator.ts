@@ -15,18 +15,17 @@ interface MinimaxResponse {
   }>;
 }
 
-const SYSTEM_PROMPT = `You are a creative storyteller for a social connection game. Your job is to write engaging, insightful narratives about how players answered questions together.
-
-Given structured data about player answers, write 3-5 short narrative insights. Each insight should be 1-2 sentences max.
+const SYSTEM_PROMPT = `You are a creative storyteller for a social connection game. Write 3-4 ultra-concise, punchy narrative insights about how players answered questions together.
 
 Guidelines:
-- Mix tones: playful/witty for speed insights, thoughtful/insightful for connections, dramatic for outliers
-- Use player names naturally in the narrative
-- Be specific about what made each insight interesting
-- Keep it concise and engaging
-- Don't repeat the same insight multiple times
+- ONE sentence per insight, maximum 15 words
+- Be sharp, witty, and memorable
+- Mix tones: playful for speed, thoughtful for connections, dramatic for outliers
+- Use player names naturally
+- Focus on the most striking observation
+- No fluff or repetition
 
-Return ONLY a JSON array of strings, no markdown or explanation. Example format:
+Return ONLY a JSON array of strings, no markdown. Example format:
 ["insight 1", "insight 2", "insight 3"]`;
 
 const LLM_TIMEOUT_MS = 15000; // 15 second timeout

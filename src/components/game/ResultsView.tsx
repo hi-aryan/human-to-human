@@ -2,18 +2,41 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import type { CompatibilityScore } from "@/types/messages";
 import { useTypewriter } from "@/hooks/useTypewriter";
+import { TTSToggle } from "@/components/game/TTSToggle";
 
 type ResultsViewProps = {
   matches: CompatibilityScore[];
   narrativeInsights: string[];
   onContinue: () => void;
+  ttsEnabled: boolean;
+  ttsState: "idle" | "loading" | "playing" | "error";
+  onTTSToggle: () => void;
+  onTTSSpeak: (text: string) => void;
+  onTTSStop: () => void;
+  readyCount: number;
+  totalPlayers: number;
+  isCurrentUserReady: boolean;
+  onPlayerReady: () => void;
 };
 
 // Constants for animation timing
-const TYPEWRITER_SPEED_MS = 40; // Milliseconds per character
+const TYPEWRITER_SPEED_MS = 20; // Milliseconds per character (faster: 2x speed)
 const INSIGHT_PAUSE_MS = 1000; // Pause between insights in milliseconds
 
-export function ResultsView({ matches, narrativeInsights, onContinue }: ResultsViewProps) {
+export function ResultsView({ 
+  matches, 
+  narrativeInsights, 
+  onContinue,
+  ttsEnabled,
+  ttsState,
+  onTTSToggle,
+  onTTSSpeak,
+  onTTSStop,
+  readyCount,
+  totalPlayers,
+  isCurrentUserReady,
+  onPlayerReady
+}: ResultsViewProps) {
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
   const [completedInsights, setCompletedInsights] = useState<Set<number>>(new Set());
   const [narrativeError, setNarrativeError] = useState(false);
@@ -46,6 +69,11 @@ export function ResultsView({ matches, narrativeInsights, onContinue }: ResultsV
       // Mark current insight as completed
       setCompletedInsights((prev) => new Set(prev).add(currentInsightIndex));
       
+      // Speak the completed insight if TTS is enabled
+      if (ttsEnabled && currentInsight) {
+        onTTSSpeak(currentInsight);
+      }
+      
       // Move to next insight after a short pause
       if (currentInsightIndex < narrativeInsights.length - 1) {
         setTimeout(() => {
@@ -62,7 +90,9 @@ export function ResultsView({ matches, narrativeInsights, onContinue }: ResultsV
     setIsNarrativeLoading(true);
     setNarrativeError(false);
     setAnimationSkipped(false);
-  }, [narrativeInsights]);
+    // Stop TTS when narrative changes
+    onTTSStop();
+  }, [narrativeInsights, onTTSStop]);
 
   // Skip animation - show all insights immediately
   const handleSkipAnimation = () => {
@@ -96,7 +126,7 @@ export function ResultsView({ matches, narrativeInsights, onContinue }: ResultsV
       </div>
 
       {/* Scrollable matches */}
-      <div className="flex-1 overflow-y-auto w-full px-6 min-h-0">
+      <div className="flex-1 overflow-y-auto custom-scrollbar w-full px-6 min-h-0">
         {matches.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
             <p>No other players found.</p>
@@ -134,14 +164,21 @@ export function ResultsView({ matches, narrativeInsights, onContinue }: ResultsV
 
       {/* Narrative Story Section */}
       <div className="w-full px-6 py-4 border-t border-border flex-shrink-0 bg-muted/20">
-        <div className="mb-3">
+        <div className="mb-3 flex items-center justify-between relative">
           <h3 className="text-lg font-semibold text-foreground">The Story</h3>
+          {narrativeInsights.length > 0 && (
+            <TTSToggle
+              enabled={ttsEnabled}
+              ttsState={ttsState}
+              onToggle={onTTSToggle}
+            />
+          )}
         </div>
         
         {isNarrativeLoading && narrativeInsights.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 space-y-3">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-muted-foreground">Crafting your story...</p>
+            <p className="text-sm text-muted-foreground">Analyzing your answers...</p>
           </div>
         ) : narrativeError ? (
           <div className="text-sm text-muted-foreground py-4 text-center">
@@ -157,7 +194,7 @@ export function ResultsView({ matches, narrativeInsights, onContinue }: ResultsV
                 Skip animation
               </button>
             )}
-            <div className="space-y-3 max-h-48 overflow-y-auto">
+            <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
               {animationSkipped ? (
                 // Show all insights immediately when skipped
                 narrativeInsights.map((insight, index) => (
@@ -208,9 +245,24 @@ export function ResultsView({ matches, narrativeInsights, onContinue }: ResultsV
 
       {/* Button */}
       <div className="p-6 pt-4 flex-shrink-0 w-full border-t border-border">
-        <Button onClick={onContinue} className="w-full" size="lg">
-          Continue to Reveal
-        </Button>
+        {(() => {
+          const readyPercentage = totalPlayers > 0 ? (readyCount / totalPlayers) * 100 : 0;
+          const canContinue = readyPercentage >= 75;
+          
+          return (
+            <Button 
+              onClick={isCurrentUserReady ? onContinue : onPlayerReady} 
+              className="w-full" 
+              size="lg"
+              disabled={!canContinue && isCurrentUserReady}
+            >
+              {isCurrentUserReady 
+                ? `Waiting for others (${readyCount}/${totalPlayers} ready)`
+                : "Ready to Continue"
+              }
+            </Button>
+          );
+        })()}
       </div>
     </div>
   );

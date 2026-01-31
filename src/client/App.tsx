@@ -13,7 +13,7 @@ import { useTTS } from "@/hooks/useTTS";
 import { getTotalPlayers } from "@/services/gameService";
 import { generateRoomId, getRoomIdFromUrl, setRoomIdInUrl, getRoomLink } from "@/lib/roomUtils";
 import { Button } from "@/components/ui/button";
-import type { ServerMessage, TTSResponseMessage } from "@/types/messages";
+import type { ServerMessage, TTSResponseMessage, ReadyStatusMessage } from "@/types/messages";
 import "./App.css";
 
 const VIEWPORT_W = 1280;
@@ -54,12 +54,18 @@ export default function App() {
   // TTS enabled state (default ON)
   const [ttsEnabled, setTtsEnabled] = useState(true);
 
+  // Results ready state tracking
+  const [resultsReadyCount, setResultsReadyCount] = useState(0);
+  const [resultsTotalPlayers, setResultsTotalPlayers] = useState(0);
+  const [isCurrentUserReady, setIsCurrentUserReady] = useState(false);
+
   // Use custom hooks for game state and WebSocket (only connect if roomId exists)
   const gameState = useGameState();
 
   // Create TTS instance first - useTTS uses refs internally for sendMessage
   // We'll use a ref-based approach to avoid circular dependency with useWebSocket
   const sendMessageRef = useRef<((msg: any) => void) | null>(null);
+  const myIdRef = useRef<string | null>(null);
   const ttsSendMessage = useCallback((msg: { type: string; text: string; requestId: string }) => {
     if (sendMessageRef.current) {
       sendMessageRef.current(msg);
@@ -70,13 +76,21 @@ export default function App() {
     sendMessage: ttsSendMessage 
   });
 
-  // Wrap message handler to also handle TTS responses
+  // Wrap message handler to also handle TTS responses and ready status
   const handleMessage = useCallback((msg: ServerMessage) => {
     gameState.handleMessage(msg);
     
     // Handle TTS responses
     if (msg.type === "TTS_RESPONSE") {
       handleTTSResponse(msg as TTSResponseMessage);
+    }
+    
+    // Handle ready status updates
+    if (msg.type === "READY_STATUS") {
+      const readyMsg = msg as ReadyStatusMessage;
+      setResultsReadyCount(readyMsg.readyCount);
+      setResultsTotalPlayers(readyMsg.totalPlayers);
+      setIsCurrentUserReady(readyMsg.readyUserIds.includes(myIdRef.current || ""));
     }
   }, [gameState.handleMessage, handleTTSResponse]);
 
@@ -85,7 +99,7 @@ export default function App() {
     onMessage: handleMessage,
   });
 
-  // Update ref with actual sendMessage - useTTS will use this via its internal ref
+  // Update refs
   useEffect(() => {
     sendMessageRef.current = sendMessage;
   }, [sendMessage]);
@@ -103,6 +117,11 @@ export default function App() {
     questions,
     narrativeInsights,
   } = gameState;
+
+  // Update myId ref when it changes
+  useEffect(() => {
+    myIdRef.current = myId || null;
+  }, [myId]);
 
   const totalPlayers = getTotalPlayers(users);
   const myName = myId ? users[myId]?.name : null;
@@ -239,6 +258,15 @@ export default function App() {
     }
   }, [currentQuestion?.id, ttsEnabled, phase, ttsSpeak]);
 
+  // Stop TTS and reset ready state when leaving RESULTS phase
+  useEffect(() => {
+    if (phase !== GamePhase.RESULTS) {
+      ttsStop();
+      setIsCurrentUserReady(false);
+      setResultsReadyCount(0);
+    }
+  }, [phase, ttsStop]);
+
   // Toggle handler
   const handleTTSToggle = useCallback(() => {
     if (ttsEnabled) {
@@ -246,6 +274,14 @@ export default function App() {
     }
     setTtsEnabled(!ttsEnabled);
   }, [ttsEnabled, ttsStop]);
+
+  // Handle player ready for results
+  const handlePlayerReady = useCallback(() => {
+    if (!isCurrentUserReady && sendMessage) {
+      sendMessage({ type: "PLAYER_READY" });
+      setIsCurrentUserReady(true);
+    }
+  }, [isCurrentUserReady, sendMessage]);
 
   // If no roomId in URL, show create lobby view
   if (!roomId) {
@@ -308,7 +344,20 @@ export default function App() {
             </>
           )}
           {phase === GamePhase.RESULTS && (
-            <ResultsView matches={results} narrativeInsights={narrativeInsights} onContinue={handleContinueToReveal} />
+            <ResultsView 
+              matches={results} 
+              narrativeInsights={narrativeInsights} 
+              onContinue={handleContinueToReveal}
+              ttsEnabled={ttsEnabled}
+              ttsState={ttsState}
+              onTTSToggle={handleTTSToggle}
+              onTTSSpeak={ttsSpeak}
+              onTTSStop={ttsStop}
+              readyCount={resultsReadyCount}
+              totalPlayers={resultsTotalPlayers}
+              isCurrentUserReady={isCurrentUserReady}
+              onPlayerReady={handlePlayerReady}
+            />
           )}
           {phase === GamePhase.REVEAL && (
             <RevealView
