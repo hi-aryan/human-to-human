@@ -28,7 +28,7 @@ export function QuestionCard({ question, onAnswer, hasAnswered = false }: Questi
             key={answer.id}
             variant={selectedId === answer.id ? "default" : "gameOutline"}
             effect="expand"
-            className="h-auto py-5 px-6 text-base whitespace-normal text-center"
+            className="min-h-[72px] py-5 px-6 text-base whitespace-normal text-center"
             onClick={() => handleSelect(answer.id)}
             disabled={hasAnswered}
           >
