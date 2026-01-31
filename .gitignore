@@ -2,3 +2,4 @@ node_modules/
 dist/
 .partykit/
 /setup.md
+.DS_Store

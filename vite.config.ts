@@ -18,6 +18,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: "0.0.0.0", // Required for Docker - bind to all interfaces
+    watch: {
+      usePolling: true, // Required for hot reload in Docker
+    },
     proxy: {
       "/parties": {
         target: "http://127.0.0.1:1999",
