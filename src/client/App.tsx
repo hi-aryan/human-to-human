@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { AnsweringView } from "@/components/game/AnsweringView";
 import { ResultsView } from "@/components/game/ResultsView";
 import { RevealView } from "@/components/game/RevealView";
@@ -7,9 +7,11 @@ import { WaitingLobbyView } from "@/components/game/WaitingLobbyView";
 import { GamePhase } from "@/types/game";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGameState } from "@/hooks/useGameState";
+import { useTTS } from "@/hooks/useTTS";
 import { getTotalPlayers } from "@/services/gameService";
 import { generateRoomId, getRoomIdFromUrl, setRoomIdInUrl, getRoomLink } from "@/lib/roomUtils";
 import { Button } from "@/components/ui/button";
+import type { ServerMessage, TTSResponseMessage } from "@/types/messages";
 import "./App.css";
 
 const VIEWPORT_W = 1280;
@@ -49,10 +51,39 @@ export default function App() {
 
   // Use custom hooks for game state and WebSocket (only connect if roomId exists)
   const gameState = useGameState();
+
+  // Create TTS instance first - useTTS uses refs internally for sendMessage
+  // We'll use a ref-based approach to avoid circular dependency with useWebSocket
+  const sendMessageRef = useRef<((msg: any) => void) | null>(null);
+  const ttsSendMessage = useCallback((msg: { type: string; text: string; requestId: string }) => {
+    if (sendMessageRef.current) {
+      sendMessageRef.current(msg);
+    }
+  }, []);
+
+  const { state: ttsState, speak: ttsSpeak, stop: ttsStop, handleTTSResponse } = useTTS({ 
+    sendMessage: ttsSendMessage 
+  });
+
+  // Wrap message handler to also handle TTS responses
+  const handleMessage = useCallback((msg: ServerMessage) => {
+    gameState.handleMessage(msg);
+    
+    // Handle TTS responses
+    if (msg.type === "TTS_RESPONSE") {
+      handleTTSResponse(msg as TTSResponseMessage);
+    }
+  }, [gameState.handleMessage, handleTTSResponse]);
+
   const { status, sendMessage } = useWebSocket({
     roomId: roomId || "",
-    onMessage: gameState.handleMessage,
+    onMessage: handleMessage,
   });
+
+  // Update ref with actual sendMessage - useTTS will use this via its internal ref
+  useEffect(() => {
+    sendMessageRef.current = sendMessage;
+  }, [sendMessage]);
 
   const {
     users,
@@ -245,6 +276,9 @@ export default function App() {
               myName={myName}
               onAnswer={handleAnswer}
               onSliderAnswer={handleSliderAnswer}
+              ttsState={ttsState}
+              ttsSpeak={ttsSpeak}
+              ttsStop={ttsStop}
             />
           )}
           {phase === GamePhase.RESULTS && (

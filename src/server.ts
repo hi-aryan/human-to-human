@@ -5,6 +5,7 @@ import {
   isValidRevealRequestMessage,
   isValidSliderAnswerMessage,
   isValidConfigureLobbyMessage,
+  isValidTTSRequestMessage,
   type SyncMessage,
   type PlayerAnsweredMessage,
   type PhaseChangeMessage,
@@ -15,9 +16,11 @@ import {
   type QuestionAdvanceMessage,
   type DeckGeneratingMessage,
   type DeckReadyMessage,
+  type TTSResponseMessage,
 } from "./types/messages";
 import { GamePhase, QuestionType, type LobbyConfig, type Question } from "./types/game";
 import { getDeck, generateDeck, deckToQuestions } from "./services/deckService";
+import { textToSpeech } from "./lib/tts";
 
 // Name generation
 const ADJECTIVES = [
@@ -216,6 +219,12 @@ export default class GameServer implements Party.Server {
       if (this.checkAllAnsweredCurrentQuestion()) {
         this.advanceToNextQuestion();
       }
+      return;
+    }
+
+    // Handle TTS request
+    if (isValidTTSRequestMessage(payload)) {
+      this.handleTTSRequest(payload, sender);
       return;
     }
 
@@ -541,6 +550,46 @@ export default class GameServer implements Party.Server {
       this.revealRequests.get(userA)?.has(userB) === true &&
       this.revealRequests.get(userB)?.has(userA) === true
     );
+  }
+
+  private async handleTTSRequest(
+    payload: { type: string; text: string; requestId: string },
+    sender: Party.Connection
+  ): Promise<void> {
+    // Get voice ID from env or use default
+    // Can be either a UUID or a Voice Library name (e.g., "Dacher", "Kora")
+    // If using a name, it will be treated as a HUME_AI provider voice
+    const voiceId = process.env.HUME_VOICE_ID || "Dacher"; // Default to Dacher voice from Voice Library
+
+    try {
+      const { audio, durationMs } = await textToSpeech(payload.text, voiceId);
+      
+      // Audio is already base64 string
+      const audioBase64 = audio;
+
+      const response: TTSResponseMessage = {
+        type: "TTS_RESPONSE",
+        requestId: payload.requestId,
+        audio: audioBase64,
+        durationMs,
+      };
+
+      // Send response only to the requesting client
+      sender.send(JSON.stringify(response));
+    } catch (error) {
+      console.error("[Server TTS] ✗ Error occurred:", error);
+      console.error("[Server TTS] Error type:", error instanceof Error ? error.constructor.name : typeof error);
+      console.error("[Server TTS] Error message:", error instanceof Error ? error.message : String(error));
+      
+      const errorResponse: TTSResponseMessage = {
+        type: "TTS_RESPONSE",
+        requestId: payload.requestId,
+        audio: "",
+        durationMs: 0,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+      sender.send(JSON.stringify(errorResponse));
+    }
   }
 
   transitionToReveal(): void {

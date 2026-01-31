@@ -38,6 +38,12 @@ export type StartGameMessage = {
   type: "START_GAME";
 };
 
+export type TTSRequestMessage = {
+  type: "TTS_REQUEST";
+  text: string;
+  requestId: string;
+};
+
 export type ClientMessage = 
   | CursorMessage 
   | AnswerMessage 
@@ -45,7 +51,8 @@ export type ClientMessage =
   | RevealRequestClientMessage 
   | TransitionToRevealMessage
   | ConfigureLobbyMessage
-  | StartGameMessage;
+  | StartGameMessage
+  | TTSRequestMessage;
 
 // Server → Client Messages
 export type UserInfo = {
@@ -145,6 +152,14 @@ export type DeckReadyMessage = {
   questionCount: number;
 };
 
+export type TTSResponseMessage = {
+  type: "TTS_RESPONSE";
+  requestId: string;
+  audio: string;      // base64 encoded audio
+  durationMs: number;
+  error?: string;
+};
+
 export type ServerMessage =
   | SyncMessage
   | JoinMessage
@@ -157,7 +172,8 @@ export type ServerMessage =
   | RevealMutualMessage
   | QuestionAdvanceMessage
   | DeckGeneratingMessage
-  | DeckReadyMessage;
+  | DeckReadyMessage
+  | TTSResponseMessage;
 
 // Type Guards (validators)
 const MAX_ID_LENGTH = 64;
@@ -224,4 +240,18 @@ export function isValidConfigureLobbyMessage(msg: unknown): msg is ConfigureLobb
   const hasAiTheme = typeof m.aiTheme === "string" && m.aiTheme.length > 0 && m.aiTheme.length <= 200;
   
   return (hasDeck || hasAiTheme) && !(hasDeck && hasAiTheme);
+}
+
+export function isValidTTSRequestMessage(msg: unknown): msg is TTSRequestMessage {
+  if (typeof msg !== "object" || msg === null) return false;
+  const m = msg as Record<string, unknown>;
+  return (
+    m.type === "TTS_REQUEST" &&
+    typeof m.text === "string" &&
+    typeof m.requestId === "string" &&
+    m.text.length > 0 &&
+    m.text.length <= 1000 && // Reasonable limit for TTS
+    m.requestId.length > 0 &&
+    m.requestId.length <= MAX_ID_LENGTH
+  );
 }
