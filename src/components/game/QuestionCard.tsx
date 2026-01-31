@@ -5,12 +5,14 @@ import type { Question } from "@/types/game";
 type QuestionCardProps = {
   question: Question;
   onAnswer?: (questionId: string, answerId: string) => void;
+  hasAnswered?: boolean;
 };
 
-export function QuestionCard({ question, onAnswer }: QuestionCardProps) {
+export function QuestionCard({ question, onAnswer, hasAnswered = false }: QuestionCardProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const handleSelect = (answerId: string) => {
+    if (hasAnswered) return;
     setSelectedId(answerId);
     onAnswer?.(question.id, answerId);
   };
@@ -28,6 +30,7 @@ export function QuestionCard({ question, onAnswer }: QuestionCardProps) {
             effect="expand"
             className="h-auto py-5 px-6 text-base whitespace-normal text-center"
             onClick={() => handleSelect(answer.id)}
+            disabled={hasAnswered}
           >
             {answer.text}
           </Button>

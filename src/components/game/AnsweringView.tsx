@@ -24,6 +24,7 @@ export function AnsweringView({
 }: AnsweringViewProps) {
   const totalQuestions = PLACEHOLDER_QUESTIONS.length;
   const answeredCount = getAnsweredCount(currentQuestion.id, answeredBy);
+  const hasAnswered = hasUserAnsweredQuestion(currentQuestion.id, myName, answeredBy);
 
   return (
     <>
@@ -61,7 +62,12 @@ export function AnsweringView({
           );
         })}
       </div>
-      <QuestionCard key={currentQuestion.id} question={currentQuestion} onAnswer={onAnswer} />
+      <QuestionCard 
+        key={currentQuestion.id} 
+        question={currentQuestion} 
+        onAnswer={onAnswer}
+        hasAnswered={hasAnswered}
+      />
     </>
   );
 }
