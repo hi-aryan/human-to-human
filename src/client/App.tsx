@@ -127,6 +127,7 @@ export default function App() {
     revealNotifications,
     activeChat,
     chatMessages,
+    hostId,
     addChatMessageLocally,
   } = gameState;
 
@@ -138,6 +139,7 @@ export default function App() {
   const totalPlayers = getTotalPlayers(users);
   const myName = myId ? users[myId]?.name : null;
   const myColor = myId ? users[myId]?.color : null;
+  const isHost = myId !== null && myId === hostId;
   const cursorSize = isClicking ? CURSOR_SIZE_CLICKED : CURSOR_SIZE_DEFAULT;
   const cursorStyle = myColor ? { cursor: cursorDataUrl(myColor, cursorSize) } : undefined;
 
@@ -375,6 +377,7 @@ export default function App() {
               lobbyConfig={lobbyConfig}
               isGeneratingDeck={isGeneratingDeck}
               roomLink={getRoomLink(roomId)}
+              isHost={isHost}
               onStartGame={handleStartGame}
               onCopyLink={handleCopyRoomLink}
             />

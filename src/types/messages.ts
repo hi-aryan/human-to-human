@@ -94,6 +94,7 @@ export type SyncMessage = {
   currentQuestionIndex: number;
   lobbyConfig: LobbyConfig | null;
   questions: Question[];
+  hostId: string | null;
 };
 
 export type JoinMessage = {

@@ -68,6 +68,7 @@ export function useGameState() {
   const [revealNotifications, setRevealNotifications] = useState<Map<string, { requesterId: string; requesterName: string; requesterColor: string }>>(new Map());
   const [activeChat, setActiveChat] = useState<{ chatId: string; partnerId: string; partnerName: string; partnerColor: string } | null>(null);
   const [chatMessages, setChatMessages] = useState<Array<{ fromId: string; fromName: string; text: string; timestamp: number; isOwn: boolean }>>([]);
+  const [hostId, setHostId] = useState<string | null>(null);
   const myIdRef = useRef<string | null>(null);
   const nudgeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -87,6 +88,9 @@ export function useGameState() {
       }
       if (syncMsg.questions) {
         setQuestions(syncMsg.questions);
+      }
+      if (syncMsg.hostId !== undefined) {
+        setHostId(syncMsg.hostId);
       }
       const map: Record<string, User> = {};
       for (const u of syncMsg.users ?? []) {
@@ -363,6 +367,7 @@ export function useGameState() {
     revealNotifications,
     activeChat,
     chatMessages,
+    hostId,
     handleMessage,
     addChatMessageLocally,
   };

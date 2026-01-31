@@ -13,6 +13,7 @@ type WaitingLobbyViewProps = {
   lobbyConfig: LobbyConfig | null;
   isGeneratingDeck: boolean;
   roomLink: string;
+  isHost: boolean;
   onStartGame: () => void;
   onCopyLink: () => void;
 };
@@ -26,6 +27,7 @@ export function WaitingLobbyView({
   lobbyConfig,
   isGeneratingDeck,
   roomLink,
+  isHost,
   onStartGame,
   onCopyLink,
 }: WaitingLobbyViewProps) {
@@ -104,7 +106,7 @@ export function WaitingLobbyView({
             {/* Start Game Button */}
             <Button
               onClick={onStartGame}
-              disabled={!canStart}
+              disabled={!canStart || !isHost}
               className="w-full"
               size="lg"
               effect="expand"
@@ -113,6 +115,8 @@ export function WaitingLobbyView({
                 ? "Generating deck..."
                 : !lobbyConfig
                 ? "Waiting for host to configure..."
+                : !isHost
+                ? "Waiting for host to start..."
                 : canStart
                 ? "Start Game"
                 : `Need ${2 - playerList.length} more player${playerList.length === 0 ? "s" : ""}`}

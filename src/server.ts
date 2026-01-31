@@ -114,6 +114,7 @@ export default class GameServer implements Party.Server {
   private narrativeGenerationPromise: Promise<void> | null = null; // Track ongoing narrative generation
   private resultsReadyPlayers = new Set<string>(); // Track who's ready on results screen
   private nudgeCooldowns = new Map<string, Map<string, number>>(); // senderId → (targetId → timestamp)
+  private hostId: string | null = null; // Track the host (initiator who configured the lobby)
   
   // Chat session management
   private activeChats = new Map<string, { participants: [string, string]; startedAt: number }>(); // chatId → session
@@ -199,6 +200,7 @@ export default class GameServer implements Party.Server {
       currentQuestionIndex: this.currentQuestionIndex,
       lobbyConfig: this.lobbyConfig,
       questions: this.questions,
+      hostId: this.hostId,
     };
     connection.send(JSON.stringify(syncMsg));
 
@@ -331,6 +333,9 @@ export default class GameServer implements Party.Server {
       // Only allow configuring if not already configured (first one wins)
       if (this.lobbyConfig) return;
       
+      // Set hostId to the connection that configured the lobby
+      this.hostId = sender.id;
+      
       // Handle async deck loading
       this.handleConfigureLobby(payload);
       return;
@@ -341,6 +346,8 @@ export default class GameServer implements Party.Server {
       // Handle start game (transition from LOBBY to ANSWERING)
       if (payload.type === "START_GAME") {
         if (this.phase !== GamePhase.LOBBY) return;
+        // Only allow host to start the game
+        if (this.hostId === null || sender.id !== this.hostId) return;
         const connectedUsers = [...this.room.getConnections()];
         // Require at least 2 players to start
         if (connectedUsers.length < 2) return;
@@ -731,6 +738,7 @@ export default class GameServer implements Party.Server {
         currentQuestionIndex: this.currentQuestionIndex,
         lobbyConfig: this.lobbyConfig,
         questions: this.questions,
+        hostId: this.hostId,
       };
       connection.send(JSON.stringify(syncMsg));
     }
