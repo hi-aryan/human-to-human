@@ -1,8 +1,5 @@
-# Development Dockerfile with hot reloading support
-FROM node:20-alpine
-
-# Install additional tools needed for development
-RUN apk add --no-cache git
+# Production Dockerfile for PartyKit
+FROM node:20-slim
 
 WORKDIR /app
 
@@ -18,5 +15,5 @@ COPY . .
 # Expose Vite dev server and PartyKit server ports
 EXPOSE 5173 1999
 
-# Default command runs the dev server
-CMD ["npm", "run", "dev"]
+# Build the frontend and run partykit
+CMD ["npm", "run", "dev:built"]
