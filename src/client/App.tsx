@@ -8,11 +8,12 @@ import { TTSToggle } from "@/components/game/TTSToggle";
 import { NudgeNotification } from "@/components/game/NudgeNotification";
 import { RevealRequestNotification } from "@/components/game/RevealRequestNotification";
 import { ChatModal } from "@/components/game/ChatModal";
+import { Cursor } from "@/components/game/Cursor";
 import { GamePhase } from "@/types/game";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGameState } from "@/hooks/useGameState";
 import { useTTS } from "@/hooks/useTTS";
-import { getTotalPlayers, hasUserAnsweredQuestion } from "@/services/gameService";
+import { getTotalPlayers } from "@/services/gameService";
 import { generateRoomId, getRoomIdFromUrl, setRoomIdInUrl, getRoomLink } from "@/lib/roomUtils";
 import { Button } from "@/components/ui/button";
 import type { ServerMessage, TTSResponseMessage, ReadyStatusMessage, NudgeMessage, ChatMessageSend, ChatCloseRequestMessage } from "@/types/messages";
@@ -20,19 +21,6 @@ import "./App.css";
 
 const VIEWPORT_W = 1280;
 const VIEWPORT_H = 720;
-
-const CURSOR_PATH =
-  "M10 11V8.99c0-.88.59-1.64 1.44-1.86h.05A1.99 1.99 0 0 1 14 9.05V12v-2c0-.88.6-1.65 1.46-1.87h.05A1.98 1.98 0 0 1 18 10.06V13v-1.94a2 2 0 0 1 1.51-1.94h0A2 2 0 0 1 22 11.06V14c0 .6-.08 1.27-.21 1.97a7.96 7.96 0 0 1-7.55 6.48 54.98 54.98 0 0 1-4.48 0 7.96 7.96 0 0 1-7.55-6.48C2.08 15.27 2 14.59 2 14v-1.49c0-1.11.9-2.01 2.01-2.01h0a2 2 0 0 1 2.01 2.03l-.01.97v-10c0-1.1.9-2 2-2h0a2 2 0 0 1 2 2V11Z";
-
-const CURSOR_SIZE_DEFAULT = 32;
-const CURSOR_SIZE_CLICKED = 26;
-const CURSOR_HOTSPOT_RATIO = 8;
-
-function cursorDataUrl(color: string, size: number): string {
-  const hotspot = size / CURSOR_HOTSPOT_RATIO;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24"><path fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" d="${CURSOR_PATH}"/></svg>`;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${hotspot} ${hotspot}, auto`;
-}
 
 function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
@@ -69,6 +57,11 @@ export default function App() {
   
   // Track dismissed reveal notifications locally
   const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
+
+  // Track drop ripple events per user (one per question per user)
+  const [dropEventIds, setDropEventIds] = useState<Record<string, number>>({});
+  const previousAnsweredByRef = useRef<Record<string, string[]>>({});
+  const dropEventCounterRef = useRef(0);
 
   // Use custom hooks for game state and WebSocket (only connect if roomId exists)
   const gameState = useGameState();
@@ -142,6 +135,38 @@ export default function App() {
     myIdRef.current = myId || null;
   }, [myId]);
 
+  // Track drop ripple triggers when users answer
+  useEffect(() => {
+    if (phase !== GamePhase.ANSWERING || !currentQuestion) {
+      // Clear drop events when not in answering phase
+      setDropEventIds({});
+      previousAnsweredByRef.current = {};
+      return;
+    }
+
+    const questionId = currentQuestion.id;
+    const currentAnswered = answeredBy[questionId] || [];
+    const previousAnswered = previousAnsweredByRef.current[questionId] || [];
+
+    // Find newly answered users
+    const newAnswers = currentAnswered.filter(name => !previousAnswered.includes(name));
+    
+    if (newAnswers.length > 0) {
+      // Generate drop event IDs for newly answered users
+      setDropEventIds(prev => {
+        const updated = { ...prev };
+        newAnswers.forEach(name => {
+          dropEventCounterRef.current += 1;
+          updated[name] = dropEventCounterRef.current;
+        });
+        return updated;
+      });
+    }
+
+    // Update previous state
+    previousAnsweredByRef.current = { ...answeredBy };
+  }, [phase, currentQuestion?.id, answeredBy]);
+
   // Initialize mouse position immediately on mount
   useEffect(() => {
     let initialized = false;
@@ -177,7 +202,6 @@ export default function App() {
   const myName = myId ? users[myId]?.name : null;
   const myColor = myId ? users[myId]?.color : null;
   const isHost = myId !== null && myId === hostId;
-  const cursorSize = isClicking ? CURSOR_SIZE_CLICKED : CURSOR_SIZE_DEFAULT;
   
   // Cache cursor identity to survive reconnection transitions
   // Clears on room change, updates when live values are available
@@ -516,10 +540,8 @@ export default function App() {
               .map(([id, u]) => {
                 if (u.x == null || u.y == null) return null;
                 
-                const hasAnswered = phase === GamePhase.ANSWERING && 
-                  currentQuestion && 
-                  hasUserAnsweredQuestion(currentQuestion.id, u.name, answeredBy);
                 const cooldownCheck = (nudgeCooldowns[id] ?? 0) > Date.now();
+                const dropEventId = dropEventIds[u.name];
                 
                 return (
                   <div
@@ -536,39 +558,13 @@ export default function App() {
                         : `Click to nudge ${u.name}`
                     }
                   >
-                    <div
-                      className={`cursor ${cooldownCheck ? 'on-cooldown' : ''} ${hasAnswered ? 'answered' : ''}`}
-                      style={
-                        {
-                          "--color": u.color,
-                          "--velocity": u.velocity,
-                        } as React.CSSProperties
-                      }
-                    >
-                      <svg
-                        className="cursor-icon"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="32"
-                        height="32"
-                        viewBox="0 0 24 24"
-                      >
-                        {/* Background layer - blocks content */}
-                        <path
-                          fill="hsl(var(--flexoki-bg))"
-                          stroke="none"
-                          d={CURSOR_PATH}
-                        />
-                        {/* Foreground layer - colored outline */}
-                        <path
-                          fill="none"
-                          stroke={u.color}
-                          strokeWidth={2}
-                          strokeLinejoin="round"
-                          d={CURSOR_PATH}
-                        />
-                      </svg>
-                      <span className="cursor-name">{u.name}</span>
-                    </div>
+                    <Cursor
+                      name={u.name}
+                      color={u.color}
+                      velocity={u.velocity}
+                      dropEventId={dropEventId}
+                      isOnCooldown={cooldownCheck}
+                    />
                   </div>
                 );
               })}
@@ -580,9 +576,7 @@ export default function App() {
       {displayName && 
         displayColor && 
         mousePosition && (() => {
-          const hasAnswered = phase === GamePhase.ANSWERING && 
-            currentQuestion && 
-            hasUserAnsweredQuestion(currentQuestion.id, displayName, answeredBy);
+          const dropEventId = displayName ? dropEventIds[displayName] : undefined;
           return (
             <div
               className="local-cursor-wrapper"
@@ -591,38 +585,13 @@ export default function App() {
                 top: mousePosition.y,
               }}
             >
-              <div
-                className={`cursor ${hasAnswered ? 'answered' : ''}`}
-                style={{
-                  "--color": displayColor,
-                  "--velocity": 0,
-                  transform: isClicking ? "scale(0.85)" : "scale(1)",
-                } as React.CSSProperties}
-              >
-            <svg
-              className="cursor-icon"
-              xmlns="http://www.w3.org/2000/svg"
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-            >
-              {/* Background layer - blocks content */}
-              <path
-                fill="hsl(var(--flexoki-bg))"
-                stroke="none"
-                d={CURSOR_PATH}
+              <Cursor
+                name={displayName}
+                color={displayColor}
+                velocity={0}
+                dropEventId={dropEventId}
+                isClicking={isClicking}
               />
-              {/* Foreground layer - colored outline */}
-              <path
-                fill="none"
-                stroke={displayColor}
-                strokeWidth={2}
-                strokeLinejoin="round"
-                d={CURSOR_PATH}
-              />
-            </svg>
-            <span className="cursor-name">{displayName}</span>
-              </div>
             </div>
           );
         })()}

@@ -58,18 +58,42 @@
   cursor: not-allowed;
 }
 
-.cursor.answered {
-  filter: drop-shadow(0 0 10px rgba(74, 222, 128, 0.35)) 
-          drop-shadow(0 0 5px rgba(74, 205, 222, 0.35));
+/* Simple circle ripple effect - scales and fades out */
+.cursor-ripple {
+  position: absolute;
+  top: 16px; /* Center on cursor icon (32px / 2) */
+  left: 16px;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  background: var(--color);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ripple-out 1.2s ease-out forwards;
+}
+
+@keyframes ripple-out {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3);
+    opacity: 0;
+  }
 }
 
 .cursor-icon {
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .cursor-name {
   font-size: calc(18px * var(--ui-scale));
   color: var(--color, hsl(var(--flexoki-tx)));
+  position: relative;
+  z-index: 1;
 }
 
 .local-cursor-wrapper {
