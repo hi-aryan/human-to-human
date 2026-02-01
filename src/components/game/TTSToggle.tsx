@@ -67,15 +67,15 @@ export function TTSToggle({ enabled, ttsState, onToggle }: TTSToggleProps) {
       size="icon"
       onClick={onToggle}
       aria-label={enabled ? "Disable text-to-speech" : "Enable text-to-speech"}
-      className="absolute top-4 right-4 h-10 w-10 z-20"
+      className="absolute top-4 right-4 h-20 w-20 z-20"
       disabled={isLoading}
       title={enabled ? "Disable text-to-speech" : "Enable text-to-speech"}
     >
-      {isLoading && <LoadingSpinner className="h-5 w-5 animate-spin" />}
+      {isLoading && <LoadingSpinner className="h-10 w-10 opacity-25 animate-spin" />}
       {!isLoading && enabled && (
-        <SpeakerIcon className={`h-5 w-5 ${isPlaying ? "animate-pulse" : ""}`} />
+        <SpeakerIcon className={`h-10 w-10 opacity-25 ${isPlaying ? "animate-pulse" : ""}`} />
       )}
-      {!isLoading && !enabled && <MutedSpeakerIcon className="h-5 w-5" />}
+      {!isLoading && !enabled && <MutedSpeakerIcon className="h-10 w-10 opacity-25" />}
     </Button>
   );
 }

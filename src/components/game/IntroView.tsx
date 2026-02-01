@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
 type IntroViewProps = {
@@ -21,23 +22,28 @@ export function IntroView({
     <div className="flex items-center justify-center h-full w-full bg-background">
       <div className="w-full max-w-2xl px-8 py-12 space-y-8">
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold">{deckName}</h1>
-          <p className="text-lg text-muted-foreground leading-relaxed">
+          <p className="text-3xl text-black leading-relaxed font-bold">
             {introduction}
           </p>
         </div>
         
-        <Button 
-          onClick={onIntroReady} 
-          className="w-full" 
-          size="lg"
-          disabled={isCurrentUserReady}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex justify-center"
         >
-          {isCurrentUserReady 
-            ? `Waiting for others (${readyCount}/${totalPlayers} ready)`
-            : "Ready to Start"
-          }
-        </Button>
+          <Button 
+            onClick={onIntroReady} 
+            size="lg"
+            disabled={isCurrentUserReady}
+          >
+            {isCurrentUserReady 
+              ? `Waiting for others (${readyCount}/${totalPlayers} ready)`
+              : "Ready to Start"
+            }
+          </Button>
+        </motion.div>
       </div>
     </div>
   );

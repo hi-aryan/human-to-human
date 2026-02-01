@@ -69,6 +69,7 @@ export default function App() {
   const [dropEventIds, setDropEventIds] = useState<Record<string, number>>({});
   const previousAnsweredByRef = useRef<Record<string, string[]>>({});
   const dropEventCounterRef = useRef(0);
+  const previousPhaseRef = useRef<GamePhase | null>(null);
 
   // Use custom hooks for game state and WebSocket (only connect if roomId exists)
   const gameState = useGameState();
@@ -441,8 +442,15 @@ export default function App() {
 
   // Stop TTS and reset ready state when leaving RESULTS phase
   useEffect(() => {
-    if (phase !== GamePhase.RESULTS) {
+    const previousPhase = previousPhaseRef.current;
+    previousPhaseRef.current = phase;
+    
+    // Only stop TTS when transitioning FROM RESULTS to another phase
+    if (previousPhase === GamePhase.RESULTS && phase !== GamePhase.RESULTS) {
       ttsStop();
+    }
+    
+    if (phase !== GamePhase.RESULTS) {
       setIsCurrentUserReady(false);
       setResultsReadyCount(0);
     }
