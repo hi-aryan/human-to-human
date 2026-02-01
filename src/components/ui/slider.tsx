@@ -9,6 +9,7 @@ export type SliderProps = {
   onChange: (value: number) => void;
   disabled?: boolean;
   className?: string;
+  playerColor?: string | null; // Player's color for styling (only visible to that player)
 };
 
 /**
@@ -40,7 +41,7 @@ function calculateEdgeFillIntensity(
  * Uses native range input with custom styling for accessibility and cross-browser support.
  */
 export const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
-  ({ positions, value, labels, labelStyle = "all", onChange, disabled = false, className }, ref) => {
+  ({ positions, value, labels, labelStyle = "all", onChange, disabled = false, className, playerColor }, ref) => {
     // Derive min/max/step from positions
     const min = 0;
     const max = positions - 1;
@@ -64,8 +65,14 @@ export const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
           
           {/* Active track fill */}
           <div
-            className="absolute top-2 left-0 h-2 bg-primary rounded-full transition-all duration-150"
-            style={{ width: `${thumbPosition}%` }}
+            className={cn(
+              "absolute top-2 left-0 h-2 rounded-full transition-all duration-150",
+              !playerColor && "bg-primary"
+            )}
+            style={{ 
+              width: `${thumbPosition}%`,
+              backgroundColor: playerColor || undefined,
+            }}
           />
 
           {/* Tick marks */}
@@ -75,12 +82,14 @@ export const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
                 key={tick}
                 className={cn(
                   "w-1 h-2 rounded-full transition-colors",
-                  tick <= value ? "bg-primary-foreground/50" : "bg-muted-foreground/30"
+                  tick <= value && !playerColor && "bg-primary-foreground/50",
+                  tick > value && "bg-muted-foreground/30"
                 )}
                 style={{
                   position: "absolute",
                   left: `${((tick - min) / (max - min)) * 100}%`,
                   transform: "translateX(-50%)",
+                  backgroundColor: tick <= value && playerColor ? `${playerColor}80` : undefined,
                 }}
               />
             ))}
@@ -109,12 +118,14 @@ export const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
           {/* Custom thumb */}
           <div
             className={cn(
-              "absolute top-0 w-6 h-6 bg-primary rounded-full shadow-md border-2 border-background transition-all duration-150",
-              "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              "absolute top-0 w-6 h-6 rounded-full shadow-md border-2 border-background transition-all duration-150",
+              "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              !playerColor && "bg-primary"
             )}
             style={{
               left: `${thumbPosition}%`,
               transform: "translateX(-50%)",
+              backgroundColor: playerColor || undefined,
             }}
           />
 
@@ -145,7 +156,7 @@ export const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
                   <span
                     key={index}
                     className={cn(
-                      "text-xs text-center transition-all duration-150",
+                      "text-lg text-center transition-all duration-150",
                       useFillEffect
                         ? "text-primary"
                         : isSelected

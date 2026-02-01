@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { getContrastTextColor } from "@/lib/utils";
 import type { MultipleChoiceQuestion } from "@/types/game";
@@ -12,44 +13,69 @@ type QuestionCardProps = {
 
 export function QuestionCard({ question, onAnswer, hasAnswered = false, myColor }: QuestionCardProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showAnswers, setShowAnswers] = useState(false);
+
+  // Show answers 2 seconds after question is shown
+  useEffect(() => {
+    const timer = setTimeout(() => setShowAnswers(true), 2000);
+    return () => clearTimeout(timer);
+  }, [question.id]);
+
+  // Reset state when question changes
+  useEffect(() => {
+    setSelectedId(null);
+    setShowAnswers(false);
+  }, [question.id]);
 
   const handleSelect = (answerId: string) => {
-    if (hasAnswered) return;
+    if (hasAnswered || !showAnswers) return;
     setSelectedId(answerId);
     onAnswer?.(question.id, answerId);
   };
 
   return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-8 p-12 border border-border rounded-lg max-w-xl w-[90%]">
-      <h2 className="text-2xl font-semibold text-center text-foreground">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 2, ease: [0.4, 0, 0.2, 1] }}
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-8 p-12 w-1/2"
+    >
+      <h2 className="text-4xl font-semibold text-center text-foreground leading-[1.1] w-[66.666667vw]">
         {question.text}
       </h2>
       <div className="grid grid-cols-2 gap-4 w-full">
-        {question.answers.map((answer) => {
+        {question.answers.map((answer, index) => {
           const isSelected = selectedId === answer.id;
           return (
-            <Button
+            <motion.div
               key={answer.id}
-              variant={isSelected ? "default" : "gameOutline"}
-              effect="expand"
-              className="min-h-[72px] py-5 px-6 text-base whitespace-normal text-center"
-              style={
-                isSelected && myColor
-                  ? {
-                      backgroundColor: myColor,
-                      color: getContrastTextColor(myColor),
-                      borderColor: myColor,
-                    }
-                  : undefined
-              }
-              onClick={() => handleSelect(answer.id)}
-              disabled={hasAnswered}
+              initial={{ opacity: 0, y: 20 }}
+              animate={showAnswers ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.4, delay: index * 0.15 }}
             >
-              {answer.text}
-            </Button>
+              <Button
+                variant="gameOutline"
+                effect="expand"
+                className="min-h-[144px] py-10 px-12 text-base whitespace-normal text-center w-full break-words"
+                style={
+                  isSelected && myColor
+                    ? {
+                        backgroundColor: myColor,
+                        color: getContrastTextColor(myColor),
+                        borderColor: myColor,
+                      }
+                    : undefined
+                }
+                onClick={() => handleSelect(answer.id)}
+                disabled={hasAnswered || !showAnswers}
+              >
+                {answer.text}
+              </Button>
+            </motion.div>
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 }

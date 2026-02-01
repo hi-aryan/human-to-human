@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { getContrastTextColor } from "@/lib/utils";
@@ -22,22 +23,47 @@ export function SliderQuestionCard({
   const initialValue = Math.floor((config.positions - 1) / 2);
   const [value, setValue] = useState(initialValue);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [showControls, setShowControls] = useState(false);
+
+  // Show controls 2 seconds after question is shown
+  useEffect(() => {
+    const timer = setTimeout(() => setShowControls(true), 2000);
+    return () => clearTimeout(timer);
+  }, [question.id]);
+
+  // Reset state when question changes
+  useEffect(() => {
+    setValue(initialValue);
+    setIsConfirmed(false);
+    setShowControls(false);
+  }, [question.id, initialValue]);
 
   const handleConfirm = () => {
-    if (hasAnswered || isConfirmed) return;
+    if (hasAnswered || isConfirmed || !showControls) return;
     setIsConfirmed(true);
     onAnswer(question.id, value);
   };
 
-  const isDisabled = hasAnswered || isConfirmed;
+  const isDisabled = hasAnswered || isConfirmed || !showControls;
 
   return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-8 p-12 border border-border rounded-lg max-w-xl w-[90%]">
-      <h2 className="text-2xl font-semibold text-center text-foreground">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 2, ease: [0.4, 0, 0.2, 1] }}
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-8 p-12 w-1/2"
+    >
+      <h2 className="text-4xl font-semibold text-center text-foreground leading-[1.1] w-[66.666667vw]">
         {question.text}
       </h2>
 
-      <div className="w-full px-4">
+      <motion.div
+        className="w-full px-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={showControls ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.4 }}
+      >
         <Slider
           positions={config.positions}
           value={value}
@@ -45,27 +71,34 @@ export function SliderQuestionCard({
           labelStyle={config.labelStyle}
           onChange={setValue}
           disabled={isDisabled}
+          playerColor={myColor}
         />
-      </div>
+      </motion.div>
 
-      <Button
-        variant={isConfirmed ? "default" : "gameOutline"}
-        effect="expand"
-        className="h-auto py-4 px-8 text-base"
-        style={
-          isConfirmed && myColor
-            ? {
-                backgroundColor: myColor,
-                color: getContrastTextColor(myColor),
-                borderColor: myColor,
-              }
-            : undefined
-        }
-        onClick={handleConfirm}
-        disabled={isDisabled}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={showControls ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.4, delay: 0.15 }}
       >
-        {isConfirmed ? "Confirmed" : "Confirm"}
-      </Button>
-    </div>
+        <Button
+          variant="gameOutline"
+          effect="expand"
+          className="h-auto py-4 px-8 text-base"
+          style={
+            isConfirmed && myColor
+              ? {
+                  backgroundColor: myColor,
+                  color: getContrastTextColor(myColor),
+                  borderColor: myColor,
+                }
+              : undefined
+          }
+          onClick={handleConfirm}
+          disabled={isDisabled}
+        >
+          {isConfirmed ? "Confirmed" : "Confirm"}
+        </Button>
+      </motion.div>
+    </motion.div>
   );
 }
