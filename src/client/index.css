@@ -53,6 +53,7 @@
 
 :root {
   --radius: 0.5rem;
+  --ui-scale: 1.25; /* Global UI scale factor - adjust to make everything bigger/smaller */
   --background: hsl(var(--flexoki-bg));
   --foreground: hsl(var(--flexoki-tx));
   --card: hsl(var(--flexoki-bg));
@@ -86,6 +87,10 @@
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  font-size: calc(16px * var(--ui-scale));
 }
 
 html, body {

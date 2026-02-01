@@ -49,7 +49,7 @@
   transition: transform 0.2s ease-out;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: calc(12px * var(--ui-scale));
   white-space: nowrap;
 }
 
@@ -68,7 +68,7 @@
 }
 
 .cursor-name {
-  font-size: 18px;
+  font-size: calc(18px * var(--ui-scale));
   color: var(--color, hsl(var(--flexoki-tx)));
 }
 
@@ -84,12 +84,12 @@
 
 .status-bar {
   position: fixed;
-  bottom: 12px;
-  left: 12px;
+  bottom: calc(12px * var(--ui-scale));
+  left: calc(12px * var(--ui-scale));
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: calc(8px * var(--ui-scale));
+  font-size: calc(12px * var(--ui-scale));
   color: #666;
   z-index: 10;
 }
@@ -116,9 +116,9 @@
 /* Top-center banner notification */
 .nudge-banner {
   position: fixed;
-  top: 20px;
+  top: calc(20px * var(--ui-scale));
   left: 50%;
-  transform: translateX(-50%) translateY(-100px);
+  transform: translateX(-50%) translateY(calc(-100px * var(--ui-scale)));
   z-index: 1000;
   opacity: 0;
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -133,13 +133,13 @@
 .nudge-banner-content {
   background: hsl(var(--flexoki-bg));
   border: 1px solid hsl(var(--flexoki-ui-3));
-  border-radius: 12px;
-  padding: 16px 32px;
-  font-size: 18px;
+  border-radius: calc(12px * var(--ui-scale));
+  padding: calc(16px * var(--ui-scale)) calc(32px * var(--ui-scale));
+  font-size: calc(18px * var(--ui-scale));
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 calc(4px * var(--ui-scale)) calc(12px * var(--ui-scale)) rgba(0, 0, 0, 0.1);
   white-space: nowrap;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(calc(8px * var(--ui-scale)));
 }
 
 .nudge-banner-content span {
@@ -149,9 +149,9 @@
 /* Reveal request notification banner */
 .reveal-request-banner {
   position: fixed;
-  top: 20px;
+  top: calc(20px * var(--ui-scale));
   left: 50%;
-  transform: translateX(-50%) translateY(-100px);
+  transform: translateX(-50%) translateY(calc(-100px * var(--ui-scale)));
   z-index: 1000;
   opacity: 0;
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -167,13 +167,13 @@
 .reveal-request-banner-content {
   background: hsl(var(--flexoki-bg));
   border: 1px solid hsl(var(--flexoki-ui-3));
-  border-radius: 12px;
-  padding: 16px 32px;
-  font-size: 18px;
+  border-radius: calc(12px * var(--ui-scale));
+  padding: calc(16px * var(--ui-scale)) calc(32px * var(--ui-scale));
+  font-size: calc(18px * var(--ui-scale));
   color: hsl(var(--foreground));
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 calc(4px * var(--ui-scale)) calc(12px * var(--ui-scale)) rgba(0, 0, 0, 0.1);
   white-space: nowrap;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(calc(8px * var(--ui-scale)));
   display: flex;
   align-items: center;
 }
