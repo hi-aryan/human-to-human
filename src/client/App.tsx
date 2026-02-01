@@ -5,7 +5,6 @@ import { RevealView } from "@/components/game/RevealView";
 import { CreateLobbyView } from "@/components/game/CreateLobbyView";
 import { WaitingLobbyView } from "@/components/game/WaitingLobbyView";
 import { IntroView } from "@/components/game/IntroView";
-import { AudioToggle } from "@/components/game/AudioToggle";
 import { NudgeNotification } from "@/components/game/NudgeNotification";
 import { RevealRequestNotification } from "@/components/game/RevealRequestNotification";
 import { ChatModal } from "@/components/game/ChatModal";
@@ -528,13 +527,7 @@ export default function App() {
             />
           )}
           {phase === GamePhase.INTRO && (
-            <>
-              <AudioToggle
-                enabled={audioEnabled}
-                audioState={audioState}
-                onToggle={handleAudioToggle}
-              />
-              <IntroView
+            <IntroView
                 introduction={getDeck(lobbyConfig?.deck || "")?.introduction || ""}
                 deckName={lobbyConfig?.deck || ""}
                 readyCount={introReadyCount}
@@ -542,16 +535,9 @@ export default function App() {
                 isCurrentUserReady={isCurrentUserIntroReady}
                 onIntroReady={handleIntroReady}
               />
-            </>
           )}
           {phase === GamePhase.ANSWERING && (
-            <>
-              <AudioToggle
-                enabled={audioEnabled}
-                audioState={audioState}
-                onToggle={handleAudioToggle}
-              />
-              <AnsweringView
+            <AnsweringView
                 currentQuestion={currentQuestion}
                 currentQuestionIndex={currentQuestionIndex}
                 questions={questions}
@@ -563,7 +549,6 @@ export default function App() {
                 onAnswer={handleAnswer}
                 onSliderAnswer={handleSliderAnswer}
               />
-            </>
           )}
           {phase === GamePhase.RESULTS && (
             <ResultsView 
