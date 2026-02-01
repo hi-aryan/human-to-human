@@ -72,7 +72,7 @@
   background: var(--color);
   border-radius: 50%;
   pointer-events: none;
-  animation: ripple-out 1.2s ease-out forwards;
+  animation: ripple-out 1.5s ease-out forwards;
 }
 
 @keyframes ripple-out {
@@ -81,7 +81,7 @@
     opacity: 1;
   }
   100% {
-    transform: translate(-50%, -50%) scale(3);
+    transform: translate(-50%, -50%) scale(6);
     opacity: 0;
   }
 }
