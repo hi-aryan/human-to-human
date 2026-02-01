@@ -31,6 +31,8 @@ export function useTTS({ sendMessage }: UseTTSOptions) {
   
   // Cache for decoded audio buffers (per hook instance, keyed by text)
   const audioCacheRef = useRef<Map<string, AudioBuffer>>(new Map());
+  // Cache for prerecorded audio (keyed by URL)
+  const prerecordedCacheRef = useRef<Map<string, AudioBuffer>>(new Map());
 
   // Keep refs in sync
   useEffect(() => {
@@ -192,6 +194,52 @@ export function useTTS({ sendMessage }: UseTTSOptions) {
     [getAudioContext, playAudio]
   );
 
+  // Play prerecorded audio from URL - stable function
+  const playPrerecordedAudio = useCallback(
+    async (url: string) => {
+      if (!url) return;
+
+      // Stop any current playback
+      stop();
+
+      // Check cache first
+      const cached = prerecordedCacheRef.current.get(url);
+      if (cached) {
+        await playAudio(cached);
+        return;
+      }
+
+      // Set loading state
+      setState("loading");
+
+      try {
+        // Fetch audio file
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch audio: ${response.status}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const audioContext = getAudioContext();
+        if (!audioContext) {
+          setState("error");
+          setTimeout(() => setState("idle"), 3000);
+          return;
+        }
+
+        // Decode and cache
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        prerecordedCacheRef.current.set(url, audioBuffer);
+        await playAudio(audioBuffer);
+      } catch (error) {
+        console.error("Failed to play prerecorded audio:", error);
+        setState("error");
+        setTimeout(() => setState("idle"), 3000);
+      }
+    },
+    [getAudioContext, playAudio, stop]
+  );
+
   // Speak text - stable function
   const speak = useCallback(
     (text: string) => {
@@ -248,5 +296,6 @@ export function useTTS({ sendMessage }: UseTTSOptions) {
     speak,
     stop,
     handleTTSResponse,
+    playPrerecordedAudio,
   };
 }

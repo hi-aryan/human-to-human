@@ -18,9 +18,6 @@ import {
   type RevealStatusMessage,
   type RevealMutualMessage,
   type QuestionAdvanceMessage,
-  type DeckGeneratingMessage,
-  type DeckReadyMessage,
-  type DeckErrorMessage,
   type TTSResponseMessage,
   type NarrativeMessage,
   type ReadyStatusMessage,
@@ -32,7 +29,7 @@ import {
   type ChatClosedMessage,
 } from "./types/messages";
 import { GamePhase, QuestionType, type LobbyConfig, type Question } from "./types/game";
-import { getDeck, generateDeck, deckToQuestions } from "./services/deckService";
+import { getDeck, deckToQuestions } from "./services/deckService";
 import { textToSpeech } from "./lib/tts";
 import { aggregateNarrativeData, type UserAnswerData, type AnswerWithMeta } from "./services/narrativeService";
 import { generateNarrative, generateFallbackNarrative, testMinimaxConnection } from "./lib/narrativeGenerator";
@@ -150,20 +147,11 @@ type UserState = {
 };
 
 // Abstracted question retrieval function - now uses DeckService
-async function getQuestions(config: LobbyConfig | null): Promise<Question[]> {
-  if (!config) return [];
+function getQuestions(config: LobbyConfig | null): Question[] {
+  if (!config || !config.deck) return [];
   
-  if (config.aiTheme) {
-    // Generate AI deck
-    const deck = await generateDeck(config.aiTheme);
-    return deckToQuestions(deck);
-  } else if (config.deck) {
-    // Get static deck
-    const deck = getDeck(config.deck);
-    return deck ? deckToQuestions(deck) : [];
-  }
-  
-  return [];
+  const deck = getDeck(config.deck);
+  return deck ? deckToQuestions(deck) : [];
 }
 
 export default class GameServer implements Party.Server {
@@ -768,44 +756,11 @@ export default class GameServer implements Party.Server {
     this.currentQuestionIndex = 0;
   }
 
-  private async handleConfigureLobby(payload: { deck?: string; aiTheme?: string }): Promise<void> {
+  private handleConfigureLobby(payload: { deck?: string }): void {
     // Clear previous game state when configuring new lobby
     this.clearGameState();
     
-    if (payload.aiTheme) {
-      // Generate AI deck
-      const generatingMsg: DeckGeneratingMessage = {
-        type: "DECK_GENERATING",
-        theme: payload.aiTheme,
-      };
-      this.room.broadcast(JSON.stringify(generatingMsg));
-      
-      try {
-        const deck = await generateDeck(payload.aiTheme);
-        this.questions = deckToQuestions(deck);
-        this.lobbyConfig = { aiTheme: payload.aiTheme };
-        
-        const readyMsg: DeckReadyMessage = {
-          type: "DECK_READY",
-          deckName: deck.deck_name,
-          questionCount: this.questions.length,
-        };
-        this.room.broadcast(JSON.stringify(readyMsg));
-      } catch (error) {
-        console.error("Failed to generate deck:", error);
-        // Reset config on error
-        this.lobbyConfig = null;
-        this.questions = [];
-        
-        // Notify clients of the error
-        const errorMsg: DeckErrorMessage = {
-          type: "DECK_ERROR",
-          error: error instanceof Error ? error.message : "Failed to generate deck",
-        };
-        this.room.broadcast(JSON.stringify(errorMsg));
-        return;
-      }
-    } else if (payload.deck) {
+    if (payload.deck) {
       // Get static deck
       const deck = getDeck(payload.deck);
       if (deck) {

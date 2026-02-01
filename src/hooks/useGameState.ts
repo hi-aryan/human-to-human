@@ -8,9 +8,6 @@ import type {
   ResultsMessage,
   RevealMutualMessage,
   QuestionAdvanceMessage,
-  DeckGeneratingMessage,
-  DeckReadyMessage,
-  DeckErrorMessage,
   NarrativeMessage,
   NudgeStatusMessage,
   NudgeReceivedMessage,
@@ -102,7 +99,6 @@ export function useGameState() {
       setNudgeCooldowns({});
       setResults([]);
       setRevealedUsers(new Map());
-      setIsGeneratingDeck(false);
       setNarrativeInsights([]);
       setRevealNotifications(new Map());
       setActiveChat(null);
@@ -112,27 +108,6 @@ export function useGameState() {
         clearTimeout(nudgeTimeoutRef.current);
         nudgeTimeoutRef.current = null;
       }
-      return;
-    }
-
-    if (msg.type === "DECK_GENERATING") {
-      const generatingMsg = msg as DeckGeneratingMessage;
-      setIsGeneratingDeck(true);
-      setDeckError(null);
-      return;
-    }
-
-    if (msg.type === "DECK_READY") {
-      const readyMsg = msg as DeckReadyMessage;
-      setIsGeneratingDeck(false);
-      setDeckError(null);
-      return;
-    }
-
-    if (msg.type === "DECK_ERROR") {
-      const errorMsg = msg as DeckErrorMessage;
-      setIsGeneratingDeck(false);
-      setDeckError(errorMsg.error);
       return;
     }
 
@@ -372,8 +347,6 @@ export function useGameState() {
     revealedUsers,
     lobbyConfig,
     questions,
-    isGeneratingDeck,
-    deckError,
     narrativeInsights,
     nudgeCooldowns,
     revealNotifications,

@@ -31,7 +31,6 @@ export type TransitionToRevealMessage = {
 export type ConfigureLobbyMessage = {
   type: "CONFIGURE_LOBBY";
   deck?: string;
-  aiTheme?: string;
 };
 
 export type StartGameMessage = {
@@ -167,22 +166,6 @@ export type QuestionAdvanceMessage = {
   questionIndex: number;
 };
 
-export type DeckGeneratingMessage = {
-  type: "DECK_GENERATING";
-  theme: string;
-};
-
-export type DeckReadyMessage = {
-  type: "DECK_READY";
-  deckName: string;
-  questionCount: number;
-};
-
-export type DeckErrorMessage = {
-  type: "DECK_ERROR";
-  error: string;
-};
-
 export type TTSResponseMessage = {
   type: "TTS_RESPONSE";
   requestId: string;
@@ -257,9 +240,6 @@ export type ServerMessage =
   | RevealStatusMessage
   | RevealMutualMessage
   | QuestionAdvanceMessage
-  | DeckGeneratingMessage
-  | DeckReadyMessage
-  | DeckErrorMessage
   | TTSResponseMessage
   | NarrativeMessage
   | ReadyStatusMessage
@@ -330,11 +310,10 @@ export function isValidConfigureLobbyMessage(msg: unknown): msg is ConfigureLobb
   const m = msg as Record<string, unknown>;
   if (m.type !== "CONFIGURE_LOBBY") return false;
   
-  // Must have either deck or aiTheme, but not both
+  // Must have deck
   const hasDeck = typeof m.deck === "string" && m.deck.length > 0 && m.deck.length <= MAX_ID_LENGTH;
-  const hasAiTheme = typeof m.aiTheme === "string" && m.aiTheme.length > 0 && m.aiTheme.length <= 200;
   
-  return (hasDeck || hasAiTheme) && !(hasDeck && hasAiTheme);
+  return hasDeck;
 }
 
 export function isValidTTSRequestMessage(msg: unknown): msg is TTSRequestMessage {

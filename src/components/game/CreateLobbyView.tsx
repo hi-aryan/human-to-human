@@ -2,14 +2,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 type CreateLobbyViewProps = {
-  onCreateLobby: (config: { deck?: string; aiTheme?: string }) => void;
+  onCreateLobby: (config: { deck?: string }) => void;
 };
 
 const DECKS = [
-  { value: "Old Fashioned", label: "Old Fashioned", aiTheme: null },
-  { value: "friends-ai", label: "Friends (genAI)", aiTheme: "Friends getting to know each other - questions about friendship, social life, and personal connections" },
-  { value: "coworkers-ai", label: "Coworkers (genAI)", aiTheme: "Professional colleagues getting to know each other - questions about work style, career, and professional relationships" },
-  { value: "couples-ai", label: "Couples (genAI)", aiTheme: "Romantic partners deepening their connection - questions about love, intimacy, and relationship dynamics" },
+  { value: "Old Fashioned", label: "Old Fashioned" },
+  { value: "Friendship Fortunes", label: "Friendship Fortunes" },
+  { value: "Love in Harmony", label: "Love in Harmony" },
+  { value: "Whispers of the Heart", label: "Whispers of the Heart" },
+  { value: "Office Allies: Building Bonds Beyond Cubicles", label: "Office Allies" },
 ];
 
 export function CreateLobbyView({ onCreateLobby }: CreateLobbyViewProps) {
@@ -17,12 +18,7 @@ export function CreateLobbyView({ onCreateLobby }: CreateLobbyViewProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const selectedDeck = DECKS.find((d) => d.value === deck);
-    if (selectedDeck?.aiTheme) {
-      onCreateLobby({ aiTheme: selectedDeck.aiTheme });
-    } else {
-      onCreateLobby({ deck });
-    }
+    onCreateLobby({ deck });
   };
 
   return (

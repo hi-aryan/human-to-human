@@ -11,8 +11,6 @@ type User = {
 type WaitingLobbyViewProps = {
   users: Record<string, User>;
   lobbyConfig: LobbyConfig | null;
-  isGeneratingDeck: boolean;
-  deckError: string | null;
   roomLink: string;
   isHost: boolean;
   onStartGame: () => void;
@@ -21,13 +19,15 @@ type WaitingLobbyViewProps = {
 
 const DECK_LABELS: Record<string, string> = {
   "Old Fashioned": "Old Fashioned",
+  "Friendship Fortunes": "Friendship Fortunes",
+  "Love in Harmony": "Love in Harmony",
+  "Whispers of the Heart": "Whispers of the Heart",
+  "Office Allies: Building Bonds Beyond Cubicles": "Office Allies",
 };
 
 export function WaitingLobbyView({
   users,
   lobbyConfig,
-  isGeneratingDeck,
-  deckError,
   roomLink,
   isHost,
   onStartGame,
@@ -35,7 +35,7 @@ export function WaitingLobbyView({
 }: WaitingLobbyViewProps) {
   const [copied, setCopied] = useState(false);
   const playerList = Object.values(users);
-  const canStart = playerList.length >= 2 && lobbyConfig !== null && !isGeneratingDeck;
+  const canStart = playerList.length >= 2 && lobbyConfig !== null;
 
   const handleCopy = async () => {
     await onCopyLink();
@@ -56,40 +56,14 @@ export function WaitingLobbyView({
               </p>
             </div>
 
-            {/* Lobby Config / Generating State / Error State */}
-            {deckError ? (
-              <div className="p-4 border border-red-500/50 rounded-lg bg-red-500/10">
-                <div className="text-sm">
-                  <span className="font-medium text-red-500">Failed to generate deck</span>
-                  <p className="text-muted-foreground text-xs mt-1">
-                    {deckError}
-                  </p>
-                  <p className="text-muted-foreground text-xs mt-2">
-                    Please refresh and try again, or select "Old Fashioned" deck.
-                  </p>
-                </div>
-              </div>
-            ) : isGeneratingDeck ? (
-              <div className="p-4 border border-border rounded-lg bg-muted/30">
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <div className="text-sm">
-                    <span className="font-medium">Generating deck...</span>
-                    <p className="text-muted-foreground text-xs mt-1">
-                      AI is creating unique questions for your session
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : lobbyConfig ? (
+            {/* Lobby Config */}
+            {lobbyConfig ? (
               <div className="p-4 border border-border rounded-lg bg-muted/30">
                 <div className="text-sm">
                   <span className="text-muted-foreground">Deck: </span>
                   <span className="font-medium">
                     {lobbyConfig.deck
                       ? DECK_LABELS[lobbyConfig.deck] || lobbyConfig.deck
-                      : lobbyConfig.aiTheme
-                      ? "AI Generated"
                       : "Unknown"}
                   </span>
                 </div>
@@ -120,16 +94,12 @@ export function WaitingLobbyView({
             {/* Start Game Button */}
             <Button
               onClick={onStartGame}
-              disabled={!canStart || !isHost || !!deckError}
+              disabled={!canStart || !isHost}
               className="w-full"
               size="lg"
               effect="expand"
             >
-              {deckError
-                ? "Deck generation failed"
-                : isGeneratingDeck
-                ? "Generating deck..."
-                : !lobbyConfig
+              {!lobbyConfig
                 ? "Waiting for host to configure..."
                 : !isHost
                 ? "Waiting for host to start..."

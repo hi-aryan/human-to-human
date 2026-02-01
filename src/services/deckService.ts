@@ -1,15 +1,15 @@
 import { getDecks, getDeck as getStaticDeck, type Deck, type Card } from "../lib/decks";
-import { generateDeck as generateAIDeck } from "../lib/deckGenerator";
 import type { Question } from "../types/game";
 import { QuestionType } from "../types/game";
 
-export type DeckInfo = { name: string; isAI: boolean };
+export type DeckInfo = { name: string };
 
 // Adapter: convert Card → Question
 function cardToQuestion(card: Card): Question {
   const baseQuestion = {
     id: card.card_name,
     text: card.question,
+    audioFile: card.audioFile,
   };
 
   if (card.type === "buttons") {
@@ -52,13 +52,9 @@ export function deckToQuestions(deck: Deck): Question[] {
 }
 
 export function listDecks(): DeckInfo[] {
-  return getDecks().map((d) => ({ name: d.deck_name, isAI: false }));
+  return getDecks().map((d) => ({ name: d.deck_name }));
 }
 
 export function getDeck(name: string): Deck | undefined {
   return getStaticDeck(name);
-}
-
-export async function generateDeck(theme: string): Promise<Deck> {
-  return generateAIDeck(theme);
 }

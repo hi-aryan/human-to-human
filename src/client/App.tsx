@@ -15,6 +15,7 @@ import { useGameState } from "@/hooks/useGameState";
 import { useTTS } from "@/hooks/useTTS";
 import { getTotalPlayers } from "@/services/gameService";
 import { generateRoomId, getRoomIdFromUrl, setRoomIdInUrl, getRoomLink } from "@/lib/roomUtils";
+import { getDeck } from "@/services/deckService";
 import { Button } from "@/components/ui/button";
 import type { ServerMessage, TTSResponseMessage, ReadyStatusMessage, NudgeMessage, ChatMessageSend, ChatCloseRequestMessage } from "@/types/messages";
 import "./App.css";
@@ -45,7 +46,7 @@ export default function App() {
   });
 
   // Store pending lobby config when creating a new lobby
-  const [pendingLobbyConfig, setPendingLobbyConfig] = useState<{ deck?: string; aiTheme?: string } | null>(null);
+  const [pendingLobbyConfig, setPendingLobbyConfig] = useState<{ deck?: string } | null>(null);
 
   // TTS enabled state (default ON)
   const [ttsEnabled, setTtsEnabled] = useState(true);
@@ -76,7 +77,7 @@ export default function App() {
     }
   }, []);
 
-  const { state: ttsState, speak: ttsSpeak, stop: ttsStop, handleTTSResponse } = useTTS({ 
+  const { state: ttsState, speak: ttsSpeak, stop: ttsStop, handleTTSResponse, playPrerecordedAudio } = useTTS({ 
     sendMessage: ttsSendMessage 
   });
 
@@ -119,8 +120,6 @@ export default function App() {
     revealedUsers,
     lobbyConfig,
     questions,
-    isGeneratingDeck,
-    deckError,
     narrativeInsights,
     nudgeCooldowns,
     revealNotifications,
@@ -296,7 +295,7 @@ export default function App() {
     sendMessage({ type: "TRANSITION_TO_REVEAL" });
   };
 
-  const handleCreateLobby = (config: { deck?: string; aiTheme?: string }) => {
+  const handleCreateLobby = (config: { deck?: string }) => {
     const newRoomId = generateRoomId();
     setPendingLobbyConfig(config);
     setRoomId(newRoomId);
@@ -313,7 +312,6 @@ export default function App() {
       sendMessage({
         type: "CONFIGURE_LOBBY",
         deck: pendingLobbyConfig.deck,
-        aiTheme: pendingLobbyConfig.aiTheme,
       });
       setPendingLobbyConfig(null);
     }
@@ -391,12 +389,45 @@ export default function App() {
     };
   }, []);
 
+  // Helper to get deck slug from deck name
+  const getDeckSlug = useCallback((deckName: string): string => {
+    // Map deck names to their folder slugs
+    const slugMap: Record<string, string> = {
+      "Friendship Fortunes": "friendship-fortunes",
+      "Love in Harmony": "love-in-harmony",
+      "Whispers of the Heart": "whispers-of-the-heart",
+      "Office Allies: Building Bonds Beyond Cubicles": "office-allies",
+    };
+    return slugMap[deckName] || deckName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  }, []);
+
   // Auto-speak when question changes and TTS is enabled
   useEffect(() => {
-    if (ttsEnabled && currentQuestion && phase === GamePhase.ANSWERING) {
+    if (!ttsEnabled || !currentQuestion || phase !== GamePhase.ANSWERING) return;
+
+    // Check if question has prerecorded audio
+    if (currentQuestion.audioFile && lobbyConfig?.deck) {
+      const deckSlug = getDeckSlug(lobbyConfig.deck);
+      const audioUrl = `/decks/${deckSlug}/${currentQuestion.audioFile}`;
+      playPrerecordedAudio(audioUrl);
+    } else {
+      // Fall back to TTS
       ttsSpeak(currentQuestion.text);
     }
-  }, [currentQuestion?.id, ttsEnabled, phase, ttsSpeak]);
+  }, [currentQuestion?.id, ttsEnabled, phase, ttsSpeak, playPrerecordedAudio, lobbyConfig, getDeckSlug]);
+
+  // Play deck introduction audio when entering ANSWERING phase
+  useEffect(() => {
+    if (ttsEnabled && phase === GamePhase.ANSWERING && currentQuestionIndex === 0 && lobbyConfig?.deck) {
+      const deck = getDeck(lobbyConfig.deck);
+      if (deck?.introAudioFile) {
+        const deckSlug = getDeckSlug(lobbyConfig.deck);
+        const introUrl = `/decks/${deckSlug}/${deck.introAudioFile}`;
+        // Play intro audio, then the first question will play after
+        playPrerecordedAudio(introUrl);
+      }
+    }
+  }, [phase, currentQuestionIndex, ttsEnabled, lobbyConfig, getDeckSlug, playPrerecordedAudio]);
 
   // Stop TTS and reset ready state when leaving RESULTS phase
   useEffect(() => {
@@ -482,8 +513,6 @@ export default function App() {
             <WaitingLobbyView
               users={users}
               lobbyConfig={lobbyConfig}
-              isGeneratingDeck={isGeneratingDeck}
-              deckError={deckError}
               roomLink={getRoomLink(roomId)}
               isHost={isHost}
               onStartGame={handleStartGame}

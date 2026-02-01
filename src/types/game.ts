@@ -21,6 +21,7 @@ export type SliderConfig = {
 type BaseQuestion = {
   id: string;
   text: string;
+  audioFile?: string;  // Optional audio file path for prerecorded audio
 };
 
 // Multiple choice question with discrete answer options
@@ -47,5 +48,4 @@ export enum GamePhase {
 
 export type LobbyConfig = {
   deck?: string;      // Static deck name
-  aiTheme?: string;   // OR AI generation theme
 };

@@ -3,6 +3,7 @@ export interface ButtonCard {
   question: string;
   type: "buttons";
   answers: [string, string, string, string];
+  audioFile?: string;
 }
 
 export interface SliderCard {
@@ -10,16 +11,25 @@ export interface SliderCard {
   question: string;
   type: "slider";
   answers: [string, string] | [string, string, string, string, string];
+  audioFile?: string;
 }
 
 export type Card = ButtonCard | SliderCard;
 
 export interface Deck {
   deck_name: string;
+  introduction?: string;
+  introAudioFile?: string;
   cards: Card[];
 }
 
-const decks: Deck[] = [
+// Import pre-generated decks
+import friendshipFortunes from "./decks-data/friendship-fortunes.json";
+import loveInHarmony from "./decks-data/love-in-harmony.json";
+import whispersOfTheHeart from "./decks-data/whispers-of-the-heart.json";
+import officeAllies from "./decks-data/office-allies.json";
+
+const hardcodedDecks: Deck[] = [
   {
     deck_name: "Old Fashioned",
     cards: [
@@ -72,10 +82,19 @@ const decks: Deck[] = [
   },
 ];
 
+// Combine hardcoded and pre-generated decks
+const allDecks: Deck[] = [
+  ...hardcodedDecks,
+  friendshipFortunes as Deck,
+  loveInHarmony as Deck,
+  whispersOfTheHeart as Deck,
+  officeAllies as Deck,
+];
+
 export function getDecks(): Deck[] {
-  return decks;
+  return allDecks;
 }
 
 export function getDeck(deckName: string): Deck | undefined {
-  return decks.find((d) => d.deck_name === deckName);
+  return allDecks.find((d) => d.deck_name === deckName);
 }
