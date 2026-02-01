@@ -544,6 +544,7 @@ export default function App() {
           {phase === GamePhase.LOBBY && roomId && (
             <WaitingLobbyView
               users={users}
+              myId={myId}
               lobbyConfig={lobbyConfig}
               roomLink={getRoomLink(roomId)}
               isHost={isHost}
@@ -716,21 +717,16 @@ export default function App() {
         />
       )}
       
-      {roomId && (
+      {roomId && myName && myColor && phase !== GamePhase.LOBBY && (
         <div className="status-bar">
-          <div className="flex items-center gap-4">
-            <span>{status}</span>
-            <span className="text-sm text-muted-foreground">Phase: {phase}</span>
-            <span className="text-sm text-muted-foreground">Room: {roomId}</span>
-            <span className="text-sm text-muted-foreground">Players: {totalPlayers}</span>
-            <Button
-              onClick={handleCopyRoomLink}
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 text-xs"
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Your name:</span>
+            <span
+              className="text-sm font-bold"
+              style={{ color: myColor }}
             >
-              Copy Link
-            </Button>
+              {myName}
+            </span>
           </div>
         </div>
       )}

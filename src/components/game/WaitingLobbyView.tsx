@@ -10,6 +10,7 @@ type User = {
 
 type WaitingLobbyViewProps = {
   users: Record<string, User>;
+  myId: string | null;
   lobbyConfig: LobbyConfig | null;
   roomLink: string;
   isHost: boolean;
@@ -26,6 +27,7 @@ const DECK_LABELS: Record<string, string> = {
 
 export function WaitingLobbyView({
   users,
+  myId,
   lobbyConfig,
   roomLink,
   isHost,
@@ -35,6 +37,7 @@ export function WaitingLobbyView({
   const [copied, setCopied] = useState(false);
   const playerList = Object.values(users);
   const canStart = playerList.length >= 2 && lobbyConfig !== null;
+  const currentUser = myId ? users[myId] : null;
 
   const handleCopy = async () => {
     await onCopyLink();
@@ -115,6 +118,19 @@ export function WaitingLobbyView({
               <QRCodeSVG value={roomLink} size={200} />
             </div>
             */}
+
+            {/* Your Name Indicator */}
+            {currentUser && (
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <span className="text-sm text-muted-foreground">Your name:</span>
+                <span
+                  className="text-base font-bold"
+                  style={{ color: currentUser.color }}
+                >
+                  {currentUser.name}
+                </span>
+              </div>
+            )}
 
             <div className="w-full space-y-3">
               <div className="flex gap-2">
