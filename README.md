@@ -1,4 +1,6 @@
-# hands
+![Human to Human Logo](./public/logo-name.png)
+
+# Human to Human
 
 A multiplayer compatibility game where strangers answer questions anonymously, get matched based on how similarly they think, and then awkwardly reveal themselves to each other. Think of it as speed dating, but with less pressure and more anonymous animal names.
 
