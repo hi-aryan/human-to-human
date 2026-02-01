@@ -409,12 +409,12 @@ export default function App() {
     return (
       <div className="viewport-container">
         <img 
-          src="/logo-name.png" 
+          src="/logo-name.svg" 
           alt="Logo" 
-          className="absolute logo-muted" 
+          className="absolute" 
           style={{ 
-            height: `${32 * scale}px`,
-            top: `calc(50% - ${(VIEWPORT_H * scale) / 2 + 48 * scale}px)`
+            height: `${64 * scale}px`,
+            top: `calc(50% - ${(VIEWPORT_H * scale) / 2 + 80 * scale}px)`
           }} 
         />
         <div
@@ -436,12 +436,12 @@ export default function App() {
       <div className="viewport-container" style={cursorStyle}>
         {phase === GamePhase.LOBBY && (
           <img 
-            src="/logo-name.png" 
+            src="/logo-name.svg" 
             alt="Logo" 
-            className="absolute logo-muted" 
+            className="absolute" 
             style={{ 
-              height: `${32 * scale}px`,
-              top: `calc(50% - ${(VIEWPORT_H * scale) / 2 + 48 * scale}px)`
+              height: `${64 * scale}px`,
+              top: `calc(50% - ${(VIEWPORT_H * scale) / 2 + 80 * scale}px)`
             }} 
           />
         )}

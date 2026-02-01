@@ -55,6 +55,7 @@
   --radius: 0.5rem;
   --ui-scale: 1.25; /* Global UI scale factor - adjust to make everything bigger/smaller */
   --signature-gradient: linear-gradient(90deg, #f09a85 0%, #d4b3d5 35%, #b8c8dc 55%, #7dd4c0 100%);
+  --font-display: 'Titan One', cursive;
   --background: hsl(var(--flexoki-bg));
   --foreground: hsl(var(--flexoki-tx));
   --card: hsl(var(--flexoki-bg));
