@@ -602,6 +602,15 @@ export default class GameServer implements Party.Server {
 
       // Check for mutual reveal
       if (this.isMutualReveal(sender.id, payload.targetId)) {
+        // Calculate chatId first to check for existing chat
+        const chatId = this.getChatId(sender.id, payload.targetId);
+        
+        // Check if chat already exists (idempotency guard to prevent race condition)
+        if (this.activeChats.has(chatId)) {
+          // Chat already created by concurrent handler, skip duplicate processing
+          return;
+        }
+
         // Send mutual reveal to both parties
         const requesterReveal: RevealMutualMessage = {
           type: "REVEAL_MUTUAL",
@@ -621,8 +630,7 @@ export default class GameServer implements Party.Server {
           targetConnection.send(JSON.stringify(targetReveal));
         }
 
-        // Create chat session
-        const chatId = this.getChatId(sender.id, payload.targetId);
+        // Create chat session (now protected from race condition)
         this.createChatSession(chatId, sender.id, payload.targetId);
 
         // Send CHAT_STARTED to both users
