@@ -670,6 +670,7 @@ export default function App() {
               style={{
                 left: mousePosition.x,
                 top: mousePosition.y,
+                transform: `translate(-4px, -4px) scale(${scale})`,
               }}
             >
               <Cursor
