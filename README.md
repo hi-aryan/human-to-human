@@ -1,5 +1,11 @@
 ![Human to Human Logo](./public/logo-name.png)
 
+Created in 10 hours in a team of 3 people at the [Cursor AI Hackathon 2026](https://luma.com/hl7wv7k3?tk=JcBLTk), used AI tools include Cursor, MiniMax, Hume.ai. 
+
+**TLDR** Hands is AI-infused humane tech for IRL events to find human connection in friends or your next co-founder. It's an UX-focused multiplayer experience (think Miro) that asks thought provoking/intimate questions while keeping identities hidden. Once a session is over participants are able to double opt-in to reveal their identities and connect. 
+
+In a tech world where everyone's identity is often collected, in a tech world that often divides, we created a safe space tool that is entirely anonymous, no data stored, and that fosters human connection. 
+
 # Human to Human
 
 A multiplayer compatibility game where strangers answer questions anonymously, get matched based on how similarly they think, and then awkwardly reveal themselves to each other. Think of it as speed dating, but with less pressure and more anonymous animal names.
