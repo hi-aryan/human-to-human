@@ -132,7 +132,7 @@ export function ChatModal({
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type your message... (Enter to send, Shift+Enter for newline)"
-              className="flex-1 min-h-[60px] max-h-[120px] px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+              className="flex-1 min-h-[60px] max-h-[120px] px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-ring/30"
             />
             <Button
               onClick={handleSend}

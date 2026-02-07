@@ -42,7 +42,7 @@ export function RevealView({
   };
 
   return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center max-w-2xl w-[90%] max-h-[80vh] bg-background">
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center max-w-2xl w-[90%] max-h-[80vh] bg-background border border-border rounded-lg">
       {/* Header */}
       <div className="flex flex-col items-center gap-2 p-6 pb-4 flex-shrink-0">
         <h2 className="text-3xl font-bold text-center text-foreground">
@@ -117,13 +117,13 @@ export function RevealView({
                   </div>
                   <div className="flex items-center gap-3">
                     {revealed ? (
-                      <div className="px-4 py-2 text-sm font-medium text-green-600 bg-green-100 rounded-md">
+                      <Button variant="outline" size="sm" effect="none" disabled>
                         Revealed
-                      </div>
+                      </Button>
                     ) : requested ? (
-                      <div className="px-4 py-2 text-sm font-medium text-yellow-600 bg-yellow-100 rounded-md">
+                      <Button variant="outline" size="sm" effect="none" disabled>
                         Pending...
-                      </div>
+                      </Button>
                     ) : (
                       <Button
                         onClick={() => handleRevealRequest(match.userId)}
