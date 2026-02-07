@@ -1,6 +1,5 @@
 {
-  "name": "multiplayer-game-boilerplate",
+  "name": "hands",
   "main": "src/server.ts",
-  "compatibilityDate": "2024-01-01",
-  "serve": "dist"
+  "compatibilityDate": "2025-02-07"
 }
