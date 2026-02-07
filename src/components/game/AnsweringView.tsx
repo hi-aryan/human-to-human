@@ -59,7 +59,7 @@ export function AnsweringView({
         })}
       </div>
       {/* Polymorphic question rendering based on question type */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="sync">
         {currentQuestion.type === QuestionType.MULTIPLE_CHOICE ? (
           <QuestionCard
             key={currentQuestion.id}

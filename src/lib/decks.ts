@@ -25,6 +25,7 @@ import friendshipFortunes from "./decks-data/friendship-fortunes.json";
 import loveInHarmony from "./decks-data/love-in-harmony.json";
 import whispersOfTheHeart from "./decks-data/whispers-of-the-heart.json";
 import officeAllies from "./decks-data/office-allies.json";
+import testDeck3Q from "./decks-data/test-deck-3q.json";
 
 // All pre-generated decks
 const allDecks: Deck[] = [
@@ -32,6 +33,7 @@ const allDecks: Deck[] = [
   loveInHarmony as Deck,
   whispersOfTheHeart as Deck,
   officeAllies as Deck,
+  testDeck3Q as Deck,
 ];
 
 export function getDecks(): Deck[] {

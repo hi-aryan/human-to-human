@@ -6,6 +6,7 @@ type CreateLobbyViewProps = {
 };
 
 const DECKS = [
+  { value: "Test Deck (3 Questions)", label: "Test Deck (3 Questions)" },
   { value: "Friendship Fortunes", label: "Friendship Fortunes" },
   { value: "Love in Harmony", label: "Love in Harmony" },
   { value: "Whispers of the Heart", label: "Whispers of the Heart" },

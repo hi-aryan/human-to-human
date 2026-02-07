@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { getContrastTextColor } from "@/lib/utils";
+import { useQuestionMotion } from "@/lib/motion";
 import type { SliderQuestion } from "@/types/game";
 
 type SliderQuestionCardProps = {
@@ -24,18 +25,15 @@ export function SliderQuestionCard({
   const [value, setValue] = useState(initialValue);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [showControls, setShowControls] = useState(false);
+  const { enterDuration, exitDuration, revealDuration, revealStagger, reduceMotion } = useQuestionMotion();
 
-  // Show controls 2 seconds after question is shown
-  useEffect(() => {
-    const timer = setTimeout(() => setShowControls(true), 2000);
-    return () => clearTimeout(timer);
-  }, [question.id]);
-
-  // Reset state when question changes
+  // Reset state when question changes and reveal controls on next frame
   useEffect(() => {
     setValue(initialValue);
     setIsConfirmed(false);
     setShowControls(false);
+    const raf = requestAnimationFrame(() => setShowControls(true));
+    return () => cancelAnimationFrame(raf);
   }, [question.id, initialValue]);
 
   const handleConfirm = () => {
@@ -50,8 +48,8 @@ export function SliderQuestionCard({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 2, ease: [0.4, 0, 0.2, 1] }}
+      exit={{ opacity: 0, transition: { duration: exitDuration, ease: [0.4, 0, 0.2, 1] } }}
+      transition={{ duration: enterDuration, ease: [0.4, 0, 0.2, 1] }}
       className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-8 p-12 w-1/2"
     >
       <h2 className="text-4xl font-semibold text-center text-foreground leading-[1.1] w-[66.666667vw]">
@@ -60,9 +58,9 @@ export function SliderQuestionCard({
 
       <motion.div
         className="w-full px-4"
-        initial={{ opacity: 0, y: 20 }}
-        animate={showControls ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.4 }}
+        initial={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+        animate={showControls ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+        transition={{ duration: revealDuration }}
       >
         <Slider
           positions={config.positions}
@@ -76,9 +74,9 @@ export function SliderQuestionCard({
       </motion.div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={showControls ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.4, delay: 0.15 }}
+        initial={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+        animate={showControls ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+        transition={{ duration: revealDuration, delay: revealStagger }}
       >
         <Button
           variant="gameOutline"

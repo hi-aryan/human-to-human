@@ -1,0 +1,24 @@
+{
+  "deck_name": "Test Deck (3 Questions)",
+  "introduction": "A short three-question deck for fast testing.",
+  "cards": [
+    {
+      "card_name": "test_q1_quick_choice",
+      "question": "Pick a quick test answer.",
+      "type": "buttons",
+      "answers": ["Option A", "Option B", "Option C", "Option D"]
+    },
+    {
+      "card_name": "test_q2_slider",
+      "question": "Where do you land on this test slider?",
+      "type": "slider",
+      "answers": ["Left", "Right"]
+    },
+    {
+      "card_name": "test_q3_speed",
+      "question": "Choose the fastest path.",
+      "type": "buttons",
+      "answers": ["Path 1", "Path 2", "Path 3", "Path 4"]
+    }
+  ]
+}
