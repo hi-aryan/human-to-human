@@ -20,64 +20,16 @@ Once you're done reading about your compatibility scores (which are definitely n
 
 ## Tech Stack
 
-- **Frontend**: React + TypeScript + Vite + Tailwind CSS (the usual suspects)
-- **Backend**: PartyKit (WebSocket server that handles all the real-time chaos)
-- **AI**: MiniMax API for generating narratives and connection insights (turns data into poetry)
-- **Deployment**: Docker (because "it works on my machine" isn't a deployment strategy)
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
+- **Backend**: PartyKit (WebSocket server for real-time multiplayer)
+- **AI**: MiniMax API for generating narratives and connection insights
 
 ## Prerequisites
 
-- **Docker** and **Docker Compose** (required—this is a Docker project)
-- A MiniMax API key (set `MINIMAX_API_KEY` in `.env` if you want AI-generated stories; otherwise it'll use perfectly fine fallback templates that won't judge you)
-
-> **Note**: While you *can* run this without Docker (Node.js 18+, npm/yarn), we recommend using Docker. It handles all dependencies, ensures consistent environments, and saves you from the "it works on my machine" conversation.
+- **Node.js** 18+ and npm/yarn
+- A MiniMax API key (optional—set `MINIMAX_API_KEY` in `.env` for AI-generated stories; otherwise uses fallback templates)
 
 ## Getting Started
-
-This project uses Docker for development and production. All common tasks are handled through the Makefile.
-
-### Quick Start
-
-```bash
-# Start the development environment
-make up
-```
-
-The app will be available at `http://localhost:5173`. PartyKit runs separately on its own port because microservices are a thing now, and we're going with it.
-
-### Makefile Commands
-
-The project includes a Makefile with convenient commands for common tasks:
-
-#### Development Commands
-
-- **`make up`** - Start the development container (builds if needed)
-- **`make up-d`** - Start in detached mode (runs in background)
-- **`make down`** - Stop the container
-- **`make restart`** - Restart the container
-- **`make logs`** - View container logs (follow mode)
-- **`make shell`** - Open a shell inside the running container
-- **`make build`** - Build the Docker image
-- **`make clean`** - Remove containers, networks, and volumes
-- **`make prune`** - Remove all unused Docker resources (use with caution)
-- **`make install`** - Rebuild node_modules volume (useful after adding dependencies)
-- **`make npm <command>`** - Run npm commands inside the container (e.g., `make npm install express`)
-
-#### Deck Generation
-
-- **`make generate-deck THEME="theme-name" QUESTIONS=10`** - Generate a new deck with AI-generated questions
-  - Example: `make generate-deck THEME="friends" QUESTIONS=10`
-
-#### Production Deployment
-
-- **`make production`** - Deploy to production (run on your production server)
-  - Pulls latest code from git
-  - Builds and starts production containers
-  - Cleans up old Docker images
-
-### Running Without Docker (Not Recommended)
-
-If you really want to run it without Docker:
 
 ```bash
 # Install dependencies
@@ -85,26 +37,44 @@ npm install
 
 # Run dev server (Vite + PartyKit)
 npm run dev
+```
 
+The app will be available at `http://localhost:5173`. PartyKit runs on port 1999 for WebSocket connections.
+
+### Building for Production
+
+```bash
 # Build for production
 npm run build
 ```
 
-This creates a `dist/` folder full of optimized files that you can serve however you want. PartyKit will serve it if you're using their platform, or you can use nginx, Caddy, or whatever web server you trust. We're not picky.
+This creates a `dist/` folder with optimized files. Deploy the frontend to Vercel (or similar) and the PartyKit server separately.
+
+### Deployment
+
+**Frontend (Vercel):**
+- Root directory: `human-to-human`
+- Build command: `npm run build`
+- Output directory: `dist`
+- Environment variable: `VITE_PARTYKIT_HOST=your-project.your-username.partykit.dev`
+
+**Backend (PartyKit):**
+```bash
+npm run deploy
+```
 
 ## Project Structure
 
 ```
 src/
 ├── client/          # React app (the thing users see)
-├── components/       # React components (because we're not barbarians)
+├── components/      # React components
 ├── hooks/           # Custom React hooks (useWebSocket, useGameState, etc.)
 ├── lib/             # Utilities and AI clients
+│   └── decks-data/  # Deck JSON files (questions and answers)
 ├── services/        # Business logic (deck loading, game state)
-├── types/           # TypeScript types (because types are good)
-└── server.ts        # PartyKit server (the thing that handles WebSocket chaos)
-
-decks/               # Question decks
+├── types/           # TypeScript types
+└── server.ts        # PartyKit server (WebSocket backend)
 ```
 
 ## How It Works
@@ -133,14 +103,14 @@ decks/               # Question decks
 
 ## Decks
 
-Decks are JSON files with questions and answer options. Think of them as conversation starters, but structured. Currently available:
+Decks are JSON files with questions and answer options stored in `src/lib/decks-data/`. Currently available:
 
 - **Friendship Fortunes**: For when you want to deepen existing friendships or make new ones
 - **Love in Harmony**: For couples who want to learn more about each other (or confirm they're compatible)
 - **Whispers of the Heart**: For those deep, meaningful conversations
 - **Office Allies**: For team building that doesn't involve trust falls or awkward icebreakers
 
-Want to add more? Create a deck JSON file. The structure should be obvious if you look at existing decks—we believe in learning by example, not by reading documentation.
+Want to add more? Create a new JSON file in `src/lib/decks-data/` following the same structure as existing decks, then import it in `src/lib/decks.ts`.
 
 ## Environment Variables
 

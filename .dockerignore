@@ -1,7 +1,0 @@
-node_modules
-dist
-.partykit
-.git
-.gitignore
-*.md
-.DS_Store
