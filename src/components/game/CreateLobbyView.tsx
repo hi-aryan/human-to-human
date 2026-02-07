@@ -5,8 +5,8 @@ type CreateLobbyViewProps = {
   onCreateLobby: (config: { deck?: string }) => void;
 };
 
-const DECKS = [
-  { value: "Test Deck (3 Questions)", label: "Test Deck (3 Questions)" },
+const TEST_DECK = { value: "Test Deck (3 Questions)", label: "Test Deck (3 Questions)" };
+const PUBLIC_DECKS = [
   { value: "Friendship Fortunes", label: "Friendship Fortunes" },
   { value: "Love in Harmony", label: "Love in Harmony" },
   { value: "Whispers of the Heart", label: "Whispers of the Heart" },
@@ -15,6 +15,8 @@ const DECKS = [
 
 export function CreateLobbyView({ onCreateLobby }: CreateLobbyViewProps) {
   const [deck, setDeck] = useState("Friendship Fortunes");
+  const [showTestDeck, setShowTestDeck] = useState(false);
+  const visibleDecks = showTestDeck ? [...PUBLIC_DECKS, TEST_DECK] : PUBLIC_DECKS;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +37,7 @@ export function CreateLobbyView({ onCreateLobby }: CreateLobbyViewProps) {
           <div className="space-y-3">
             <label className="text-sm font-medium">Deck</label>
             <div className="grid grid-cols-2 gap-3">
-              {DECKS.map((d) => (
+              {visibleDecks.map((d) => (
                 <button
                   key={d.value}
                   type="button"
@@ -49,6 +51,23 @@ export function CreateLobbyView({ onCreateLobby }: CreateLobbyViewProps) {
                   <span>{d.label}</span>
                 </button>
               ))}
+            </div>
+            <div className="flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTestDeck((prev) => {
+                    const next = !prev;
+                    if (!next && deck === TEST_DECK.value) {
+                      setDeck("Friendship Fortunes");
+                    }
+                    return next;
+                  });
+                }}
+                className="text-xs text-muted-foreground/10 hover:text-muted-foreground/30 transition-colors"
+              >
+                {showTestDeck ? "Hide test deck" : "Show test deck"}
+              </button>
             </div>
           </div>
 
