@@ -429,14 +429,6 @@ export default function App() {
         >
           <CreateLobbyView onCreateLobby={handleCreateLobby} />
         </div>
-        <p 
-          className="absolute text-sm text-muted-foreground"
-          style={{
-            top: `calc(50% + ${(VIEWPORT_H * scale) / 2 + 16 * scale}px)`
-          }}
-        >
-          created with <span className="font-bold">Cursor</span> and <span className="font-bold">Gemini</span>
-        </p>
       </div>
     );
   }
@@ -550,14 +542,6 @@ export default function App() {
               })}
           </div>
         </div>
-        <p 
-          className="absolute text-sm text-muted-foreground"
-          style={{
-            top: `calc(50% + ${(VIEWPORT_H * scale) / 2 + 16 * scale}px)`
-          }}
-        >
-          created with <span className="font-bold">Cursor</span> and <span className="font-bold">Gemini</span>
-        </p>
       </div>
       
       {/* Local player cursor - rendered like remote cursors for consistency */}
